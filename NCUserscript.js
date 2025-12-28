@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         NovaCore V2.9 Enhanced
+// @name         NovaCore V3 Enhanced
 // @namespace    http://github.com/TheM1ddleM1n/
-// @version      2.9
+// @version      3
 // @description  NovaCore V2 with improved performance, memory management, code quality, themes, and session stats!
 // @author       (Cant reveal who im), TheM1ddleM1n
 // @match        https://miniblox.io/
@@ -91,7 +91,7 @@
     const SESSION_STATS_KEY = 'novacore_session_stats';
     const SESSION_COUNT_KEY = 'novacore_session_count';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
-    const SCRIPT_VERSION = '2.9';
+    const SCRIPT_VERSION = '3';
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreForMiniblox';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
