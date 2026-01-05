@@ -1,15 +1,24 @@
 // ==UserScript==
-// @name         NovaCore V3 Enhanced (Optimized)
+// @name         NovaCore V3 Enhanced (With Global Chat)
 // @namespace    http://github.com/TheM1ddleM1n/
-// @version      3.2
-// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code
-// @author       (Cant reveal who im), TheM1ddleM1n
+// @version      3.3
+// @description  NovaCore V3 with integrated WebSocket global chat on Railway! (i will improve this however)
+// @author       TheM1ddleM1n, Scripter
 // @match        https://miniblox.io/
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    // ============================================
+    // WEBSOCKET CONFIGURATION
+    // ============================================
+    const WS_CONFIG = {
+        SERVER_URL: 'web-production-9fd1e.up.railway.app',
+        RECONNECT_ATTEMPTS: 5,
+        RECONNECT_DELAY: 3000
+    };
 
     const TIMING = {
         INTRO_CHECK_APPEAR: 900,
@@ -37,7 +46,7 @@
     const DEFAULT_MENU_KEY = '\\';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
     const SESSION_COUNT_KEY = 'novacore_session_count';
-    const SCRIPT_VERSION = '3.2';
+    const SCRIPT_VERSION = '3.3';
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreForMiniblox';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
@@ -69,6 +78,7 @@
     const stateData = {
         fpsShown: false, cpsShown: false, realTimeShown: false, antiAfkEnabled: false,
         menuKey: DEFAULT_MENU_KEY, currentTheme: 'cyan',
+        chatOpen: false, chatConnected: false,
         counters: { fps: null, cps: null, realTime: null, antiAfk: null },
         intervals: { fps: null, cps: null, realTime: null, antiAfk: null, statsUpdate: null },
         drag: {
@@ -90,12 +100,138 @@
             totalClicks: 0, totalKeys: 0, peakCPS: 0, peakFPS: 0, sessionCount: 0,
             startTime: null, clicksBySecond: [], fpsHistory: [], averageFPS: 0,
             averageCPS: 0, totalSessionTime: 0
-        }
+        },
+        wsClient: null
     };
 
     const cachedElements = {};
     let cpsClickListenerRef = null;
 
+    // ============================================
+    // WEBSOCKET CLIENT CLASS
+    // ============================================
+    class NovaCoreWebSocketChat {
+        constructor(serverUrl, username, theme) {
+            this.serverUrl = serverUrl;
+            this.username = username;
+            this.theme = theme;
+            this.ws = null;
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = WS_CONFIG.RECONNECT_ATTEMPTS;
+            this.reconnectDelay = WS_CONFIG.RECONNECT_DELAY;
+            this.isOpen = false;
+            this.userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            this.messages = [];
+            this.onlineUsers = 0;
+            this.onMessage = null;
+            this.onConnect = null;
+            this.onDisconnect = null;
+            this.onUserJoin = null;
+        }
+
+        connect() {
+            try {
+                const protocol = this.serverUrl.includes('localhost') ? 'ws' : 'wss';
+                const url = `${protocol}://${this.serverUrl}`;
+                console.log('[NovaCore Chat] Connecting to:', url);
+                this.ws = new WebSocket(url);
+                this.ws.addEventListener('open', () => this.handleOpen());
+                this.ws.addEventListener('message', (e) => this.handleMessage(e));
+                this.ws.addEventListener('close', () => this.handleClose());
+                this.ws.addEventListener('error', (e) => this.handleError(e));
+            } catch (error) {
+                console.error('[NovaCore Chat] Connection error:', error);
+                this.reconnect();
+            }
+        }
+
+        handleOpen() {
+            console.log('[NovaCore Chat] Connected to server');
+            this.reconnectAttempts = 0;
+            this.isOpen = true;
+            this.send({ type: 'JOIN', userId: this.userId, username: this.username, theme: this.theme });
+            if (this.onConnect) this.onConnect();
+            this.startHeartbeat();
+        }
+
+        handleMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                switch(data.type) {
+                    case 'HISTORY':
+                        this.messages = data.messages || [];
+                        this.onlineUsers = data.onlineUsers || 0;
+                        if (this.onMessage) this.onMessage(this.messages);
+                        break;
+                    case 'MESSAGE':
+                        this.messages.push(data);
+                        if (this.onMessage) this.onMessage(this.messages);
+                        break;
+                    case 'USER_JOINED':
+                        this.onlineUsers = data.onlineUsers || 0;
+                        if (this.onUserJoin) this.onUserJoin(data);
+                        break;
+                }
+            } catch (error) {
+                console.error('[NovaCore Chat] Message parse error:', error);
+            }
+        }
+
+        handleClose() {
+            console.log('[NovaCore Chat] Disconnected');
+            this.isOpen = false;
+            if (this.onDisconnect) this.onDisconnect();
+            this.reconnect();
+        }
+
+        handleError(error) {
+            console.error('[NovaCore Chat] WebSocket error:', error);
+        }
+
+        reconnect() {
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                this.reconnectAttempts++;
+                const delay = this.reconnectDelay * this.reconnectAttempts;
+                console.log(`[NovaCore Chat] Reconnecting in ${delay}ms...`);
+                setTimeout(() => this.connect(), delay);
+            }
+        }
+
+        send(data) {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(data));
+            }
+        }
+
+        sendMessage(message) {
+            this.send({ type: 'MESSAGE', message: message });
+        }
+
+        startHeartbeat() {
+            this.heartbeatInterval = setInterval(() => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.send({ type: 'PING' });
+                }
+            }, 30000);
+        }
+
+        stopHeartbeat() {
+            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        }
+
+        disconnect() {
+            this.stopHeartbeat();
+            if (this.ws) {
+                this.ws.close();
+                this.ws = null;
+            }
+            this.isOpen = false;
+        }
+    }
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
     function safeExecute(fn, fallbackValue = null, context = 'Unknown') {
         try {
             return fn();
@@ -274,18 +410,13 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 .theme-btn.red { border-color: #e74c3c; color: #e74c3c; }
 .theme-btn.gold { border-color: #f39c12; color: #f39c12; }
 
-.update-notification { position: fixed; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; padding: 16px 20px; color: white; z-index: 100000001; max-width: 320px; animation: slideInRight 0.5s ease; }
+.update-notification { position: fixed; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; padding: 16px 20px; color: white; z-index: 100000001; max-width: 320px; }
 .update-notification-header { margin-bottom: 12px; font-size: 1.1rem; font-weight: 700; color: var(--nova-primary); }
 .update-notification-body { font-size: 0.95rem; line-height: 1.5; margin-bottom: 14px; color: #ddd; }
 .update-notification-version { color: var(--nova-primary); font-weight: 700; }
 .update-notification-buttons { display: flex; gap: 10px; }
 .update-notification-btn { flex: 1; background: #000; border: 2px solid var(--nova-primary); color: var(--nova-primary); padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: Segoe UI, sans-serif; }
 .update-notification-btn:hover { background: var(--nova-primary); color: #000; transform: translateY(-2px); }
-.update-notification-btn.dismiss { border-color: #666; color: #999; }
-.update-notification-btn.dismiss:hover { background: #666; color: white; }
-.update-check-status { font-size: 0.85rem; color: #999; text-align: center; margin-top: 8px; font-style: italic; }
-.update-now-btn { background: linear-gradient(135deg, #2ecc71, #27ae60) !important; border: 2px solid #2ecc71 !important; color: white !important; font-weight: 900 !important; }
-.update-now-btn:hover { background: linear-gradient(135deg, #27ae60, #229954) !important; color: white !important; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.6) !important; }
 
 .keybind-input { width: 100%; background: rgba(0, 0, 0, 0.8); border: 2px solid var(--nova-primary); color: var(--nova-primary); font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 1rem; padding: 8px 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease; }
 .keybind-input:focus { outline: none; box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); background: rgba(0, 255, 255, 0.15); transform: scale(1.02); }
@@ -293,17 +424,126 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 .color-picker-wrapper { margin-top: 12px; }
 .color-picker-input { width: 100%; height: 50px; border: 2px solid var(--nova-primary); border-radius: 8px; cursor: pointer; background: rgba(0, 0, 0, 0.8); transition: all 0.3s ease; }
 .color-picker-input:hover { box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); transform: scale(1.02); }
-`;
+
+#nova-chat-window { position: fixed; bottom: 100px; right: 20px; width: 350px; height: 500px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; display: none; flex-direction: column; z-index: 999999998; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+#nova-chat-header { padding: 12px; border-bottom: 1px solid var(--nova-primary); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--nova-primary)20, var(--nova-primary)10); color: var(--nova-primary); font-weight: bold; }
+#nova-chat-close { background: none; border: none; color: var(--nova-primary); cursor: pointer; font-size: 16px; }
+#nova-chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+#nova-chat-input-area { padding: 12px; border-top: 1px solid var(--nova-primary); display: flex; gap: 8px; }
+#nova-chat-input { flex: 1; background: rgba(0, 0, 0, 0.8); border: 1px solid var(--nova-primary); color: white; padding: 8px; border-radius: 6px; font-family: Segoe UI, sans-serif; }
+#nova-chat-send { background: var(--nova-primary); border: none; color: black; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: Segoe UI, sans-serif; }
+#nova-chat-send:hover { opacity: 0.8; }
+    `;
     document.head.appendChild(style);
 
     // ============================================
-    // CONSOLIDATED COUNTER FACTORY FUNCTION
+    // CHAT UI FUNCTIONS
     // ============================================
+    function createChatWindow() {
+        const chatWindow = document.createElement('div');
+        chatWindow.id = 'nova-chat-window';
 
-    /**
-     * Factory function to create and manage counter elements
-     * @param {Object} config - Counter configuration object
-     */
+        const header = document.createElement('div');
+        header.id = 'nova-chat-header';
+        header.innerHTML = '<span>NovaCore Chat</span><button id="nova-chat-close">✕</button>';
+        chatWindow.appendChild(header);
+
+        const messagesContainer = document.createElement('div');
+        messagesContainer.id = 'nova-chat-messages';
+        chatWindow.appendChild(messagesContainer);
+
+        const inputArea = document.createElement('div');
+        inputArea.id = 'nova-chat-input-area';
+        inputArea.innerHTML = '<input id="nova-chat-input" type="text" placeholder="Message..." maxlength="100" /><button id="nova-chat-send">Send</button>';
+        chatWindow.appendChild(inputArea);
+
+        document.body.appendChild(chatWindow);
+        cachedElements.chatWindow = chatWindow;
+
+        document.getElementById('nova-chat-close').addEventListener('click', closeChatWindow);
+        document.getElementById('nova-chat-send').addEventListener('click', sendChatMessage);
+        document.getElementById('nova-chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        return chatWindow;
+    }
+
+    function openChatWindow() {
+        if (!cachedElements.chatWindow) createChatWindow();
+        cachedElements.chatWindow.style.display = 'flex';
+        state.chatOpen = true;
+        document.getElementById('nova-chat-input').focus();
+    }
+
+    function closeChatWindow() {
+        if (cachedElements.chatWindow) {
+            cachedElements.chatWindow.style.display = 'none';
+        }
+        state.chatOpen = false;
+    }
+
+    function sendChatMessage() {
+        const input = document.getElementById('nova-chat-input');
+        const message = input.value.trim();
+        if (message && state.wsClient && state.wsClient.isOpen) {
+            state.wsClient.sendMessage(message);
+            input.value = '';
+        }
+    }
+
+    function addChatMessage(username, message, isOwn = false, timestamp = null) {
+        const messagesContainer = document.getElementById('nova-chat-messages');
+        if (!messagesContainer) return;
+
+        const msgEl = document.createElement('div');
+        msgEl.style.cssText = `padding: 8px 10px; border-radius: 6px; max-width: 85%; word-wrap: break-word; background: ${isOwn ? 'var(--nova-primary)30' : 'rgba(255, 255, 255, 0.1)'}; color: white; align-self: ${isOwn ? 'flex-end' : 'flex-start'}; border-left: 2px solid var(--nova-primary); font-size: 12px;`;
+
+        const time = new Date(timestamp || Date.now());
+        const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        msgEl.innerHTML = `<div style="font-weight: bold; font-size: 11px; color: var(--nova-primary);">${username}</div><div>${message}</div><div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">${timeStr}</div>`;
+
+        messagesContainer.appendChild(msgEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function initWebSocketChat() {
+        const username = localStorage.getItem('novacore_username') || 'NovaUser' + Math.random().toString(36).substr(2, 5);
+        localStorage.setItem('novacore_username', username);
+
+        const wsClient = new NovaCoreWebSocketChat(
+            WS_CONFIG.SERVER_URL,
+            username,
+            state.currentTheme
+        );
+
+        wsClient.onConnect = () => {
+            state.chatConnected = true;
+            console.log('[NovaCore] Chat connected!');
+        };
+
+        wsClient.onDisconnect = () => {
+            state.chatConnected = false;
+        };
+
+        wsClient.onMessage = (messages) => {
+            const messagesContainer = document.getElementById('nova-chat-messages');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+                messages.forEach(msg => {
+                    addChatMessage(msg.username, msg.message, msg.username === username, msg.timestamp);
+                });
+            }
+        };
+
+        state.wsClient = wsClient;
+        wsClient.connect();
+    }
+
+    // ============================================
+    // COUNTER FUNCTIONS
+    // ============================================
     function createCounterElement(config) {
         const {
             id,
@@ -347,11 +587,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         return counter;
     }
 
-    /**
-     * Safely update counter text content
-     * @param {string} counterType - Counter type key (fps, cps, etc)
-     * @param {string} text - New text to display
-     */
     function updateCounterText(counterType, text) {
         if (!state.counters[counterType]) return;
 
@@ -400,6 +635,11 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     }
 
     function createIntro() {
+        // Check if intro already shown
+        if (document.getElementById('nova-intro')) {
+            return document.getElementById('nova-intro');
+        }
+
         const overlay = document.createElement('div');
         overlay.id = 'nova-intro';
 
@@ -425,14 +665,25 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         overlay.appendChild(clientNameContainer);
         document.body.appendChild(overlay);
 
-        setTimeout(() => document.querySelector('.checkmark').style.animation = 'checkPopIn 0.6s forwards ease', TIMING.INTRO_CHECK_APPEAR);
-        setTimeout(() => button.style.animation = 'slideUpOutTop 0.8s ease forwards', TIMING.INTRO_BUTTON_EXIT);
+        setTimeout(() => {
+            const checkmark = document.querySelector('.checkmark');
+            if (checkmark) checkmark.style.animation = 'checkPopIn 0.6s forwards ease';
+        }, TIMING.INTRO_CHECK_APPEAR);
+
+        setTimeout(() => {
+            button.style.animation = 'slideUpOutTop 0.8s ease forwards';
+        }, TIMING.INTRO_BUTTON_EXIT);
+
         setTimeout(() => {
             text.style.animation = 'strokeDashoffsetAnim 2.5s forwards ease';
             clientNameContainer.style.opacity = '1';
             clientNameContainer.style.animation = 'fadeScaleIn 0.8s ease forwards';
         }, TIMING.INTRO_TEXT_START);
-        setTimeout(() => document.querySelector('.client-name-checkmark').style.animation = 'checkmarkFadeScale 0.5s forwards ease', TIMING.INTRO_CHECKMARK_APPEAR);
+
+        setTimeout(() => {
+            const checkmark = document.querySelector('.client-name-checkmark');
+            if (checkmark) checkmark.style.animation = 'checkmarkFadeScale 0.5s forwards ease';
+        }, TIMING.INTRO_CHECKMARK_APPEAR);
 
         return overlay;
     }
@@ -718,7 +969,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             </div>
             <div class="update-notification-buttons">
                 <button class="update-notification-btn" id="update-btn">View on GitHub</button>
-                <button class="update-notification-btn dismiss" id="dismiss-btn">Later</button>
+                <button class="update-notification-btn" id="dismiss-btn">Later</button>
             </div>
         `;
         document.body.appendChild(notification);
@@ -762,24 +1013,9 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                     console.log(`[NovaCore] Update available: v${latestVersion}`);
                     state.updateAvailable = true;
                     showUpdateNotification(latestVersion);
-                    if (cachedElements.checkUpdateBtn) {
-                        cachedElements.checkUpdateBtn.textContent = '🎉 Update Available!';
-                        cachedElements.checkUpdateBtn.classList.add('update-now-btn');
-                        cachedElements.checkUpdateBtn.onclick = () => {
-                            window.open(`https://github.com/${GITHUB_REPO}/blob/main/NCUserscript.js`, '_blank');
-                        };
-                    }
-                    if (manual && cachedElements.updateStatus) {
-                        cachedElements.updateStatus.textContent = `✨ v${latestVersion} available!`;
-                        cachedElements.updateStatus.style.color = '#2ecc71';
-                    }
                 } else {
                     console.log('[NovaCore] You are on the latest version');
                     state.updateAvailable = false;
-                    if (manual && cachedElements.updateStatus) {
-                        cachedElements.updateStatus.textContent = '✓ Latest version installed!';
-                        cachedElements.updateStatus.style.color = '#2ecc71';
-                    }
                 }
             }
         } catch (error) {
@@ -788,23 +1024,13 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 if (manual) alert('Update check timed out. Please try again.');
             } else {
                 console.error('[NovaCore] Update check failed:', error);
-                if (manual && cachedElements.updateStatus) {
-                    cachedElements.updateStatus.textContent = '✗ Check failed (offline?)';
-                    cachedElements.updateStatus.style.color = '#e74c3c';
-                }
             }
         }
     }
 
-    function hexToRgb(hex) {
-        const rgb = parseInt(hex.slice(1), 16);
-        const r = (rgb >> 16) & 255;
-        const g = (rgb >> 8) & 255;
-        const b = rgb & 255;
-        return `${r}, ${g}, ${b}`;
-    }
-
-    // Menu
+    // ============================================
+    // MENU
+    // ============================================
     function createMenu() {
         const menuOverlay = document.createElement('div');
         menuOverlay.id = 'nova-menu-overlay';
@@ -827,6 +1053,16 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             focusableElements.push(btn);
             return btn;
         };
+
+        const chatBtn = createButton('💬 Open Global Chat', () => {
+            openChatWindow();
+            closeMenu();
+        });
+        menuContent.appendChild(chatBtn);
+
+        const separator = document.createElement('div');
+        separator.style.cssText = 'height: 1px; background: var(--nova-primary)30; margin: 8px 0;';
+        menuContent.appendChild(separator);
 
         const fpsBtn = createButton('FPS Counter', () => {
             if (state.fpsShown) {
@@ -1018,12 +1254,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         cachedElements.checkUpdateBtn = checkUpdateBtn;
 
         const updateStatus = document.createElement('div');
-        updateStatus.className = 'update-check-status';
+        updateStatus.style.cssText = 'font-size: 0.85rem; color: #999; text-align: center; margin-top: 8px; font-style: italic;';
         updateStatus.textContent = `Current version: v${SCRIPT_VERSION}`;
         updateSection.appendChild(updateStatus);
         cachedElements.updateStatus = updateStatus;
 
         menuContent.appendChild(updateSection);
+
+        // Credits section
         const creditsSection = document.createElement('div');
         creditsSection.className = 'settings-section';
         creditsSection.innerHTML = `
@@ -1031,6 +1269,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 <div><strong style="color: var(--nova-primary);">NovaCore v${SCRIPT_VERSION}</strong></div>
                 <div>Original by <strong>@Scripter132132</strong></div>
                 <div>Enhanced by <strong>@TheM1ddleM1n</strong></div>
+                <div style="margin-top: 8px; font-size: 0.75rem;">With Global Chat 💎</div>
             </div>
         `;
         menuContent.appendChild(creditsSection);
@@ -1049,8 +1288,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         cachedElements.cpsBtn = cpsBtn;
         cachedElements.realTimeBtn = realTimeBtn;
         cachedElements.antiAfkBtn = antiAfkBtn;
-        cachedElements.fullscreenBtn = fullscreenBtn;
-        cachedElements.focusableElements = focusableElements;
 
         return menuOverlay;
     }
@@ -1086,9 +1323,13 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             if (e.key === state.menuKey) {
                 e.preventDefault();
                 toggleMenu();
-            } else if (e.key === 'Escape' && cachedElements.menu && cachedElements.menu.classList.contains('show')) {
-                e.preventDefault();
-                closeMenu();
+            } else if (e.key === 'Escape') {
+                if (cachedElements.menu && cachedElements.menu.classList.contains('show')) {
+                    e.preventDefault();
+                    closeMenu();
+                } else if (state.chatOpen) {
+                    closeChatWindow();
+                }
             }
         });
     }
@@ -1131,8 +1372,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 state.realTimeShown = true;
                 if (cachedElements.realTimeBtn) cachedElements.realTimeBtn.textContent = 'Hide Real Time';
             }
-
-
         } catch (e) {
             console.error('[NovaCore] Failed to restore settings:', e);
         }
@@ -1154,13 +1393,18 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
 
         stopPerformanceLoop();
+
+        if (state.wsClient) {
+            state.wsClient.disconnect();
+        }
+
         console.log('[NovaCore] Cleanup complete');
     }
 
     window.addEventListener('beforeunload', globalCleanup);
 
     function init() {
-        console.log(`[NovaCore] Initializing v${SCRIPT_VERSION} (Optimized)...`);
+        console.log(`[NovaCore] Initializing v${SCRIPT_VERSION} (With Global Chat)...`);
 
         loadCustomTheme();
         initSessionStats();
@@ -1187,6 +1431,10 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 console.log('[NovaCore] Initialization complete');
             }, TIMING.INTRO_FADE_OUT);
         }, TIMING.INTRO_TOTAL_DURATION);
+
+        setTimeout(() => {
+            initWebSocketChat();
+        }, 1000);
     }
 
     if (document.readyState === 'loading') {
