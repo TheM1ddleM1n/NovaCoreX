@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         NovaCore V3 Enhanced (With Global Chat)
 // @namespace    http://github.com/TheM1ddleM1n/
-// @version      3.3
-// @description  NovaCore V3 with integrated WebSocket global chat on Railway! (i will improve this however)
-// @author       TheM1ddleM1n, Scripter
+// @version      3.4
+// @description  NovaCore V3 with integrated WebSocket global chat - Railway Edition
+// @author       TheM1ddleM1n, Scripter!
 // @match        https://miniblox.io/
 // @grant        none
 // ==/UserScript==
@@ -12,7 +12,7 @@
     'use strict';
 
     // ============================================
-    // WEBSOCKET CONFIGURATION
+    // WEBSOCKET CONFIG
     // ============================================
     const WS_CONFIG = {
         SERVER_URL: 'web-production-9fd1e.up.railway.app',
@@ -46,7 +46,7 @@
     const DEFAULT_MENU_KEY = '\\';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
     const SESSION_COUNT_KEY = 'novacore_session_count';
-    const SCRIPT_VERSION = '3.3';
+    const SCRIPT_VERSION = '3.4';
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreForMiniblox';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
@@ -445,7 +445,18 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 
         const header = document.createElement('div');
         header.id = 'nova-chat-header';
-        header.innerHTML = '<span>NovaCore Chat</span><button id="nova-chat-close">✕</button>';
+        header.style.cssText = 'padding: 12px; border-bottom: 1px solid var(--nova-primary); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--nova-primary)20, var(--nova-primary)10); color: var(--nova-primary); font-weight: bold;';
+
+        const headerLeft = document.createElement('div');
+        headerLeft.innerHTML = `<div style="font-size: 14px; font-weight: bold;">NovaCore Chat</div><div style="font-size: 11px; opacity: 0.7; margin-top: 2px;">Users Online: ${state.wsClient?.onlineUsers || 0}</div>`;
+        header.appendChild(headerLeft);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'nova-chat-close';
+        closeBtn.style.cssText = 'background: none; border: none; color: var(--nova-primary); cursor: pointer; font-size: 16px; padding: 0;';
+        closeBtn.textContent = '✕';
+        header.appendChild(closeBtn);
+
         chatWindow.appendChild(header);
 
         const messagesContainer = document.createElement('div');
@@ -489,6 +500,12 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         if (message && state.wsClient && state.wsClient.isOpen) {
             state.wsClient.sendMessage(message);
             input.value = '';
+            input.focus();
+        } else if (!state.wsClient?.isOpen) {
+            input.placeholder = 'Connecting...';
+            setTimeout(() => {
+                input.placeholder = 'Message...';
+            }, 2000);
         }
     }
 
@@ -497,12 +514,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         if (!messagesContainer) return;
 
         const msgEl = document.createElement('div');
-        msgEl.style.cssText = `padding: 8px 10px; border-radius: 6px; max-width: 85%; word-wrap: break-word; background: ${isOwn ? 'var(--nova-primary)30' : 'rgba(255, 255, 255, 0.1)'}; color: white; align-self: ${isOwn ? 'flex-end' : 'flex-start'}; border-left: 2px solid var(--nova-primary); font-size: 12px;`;
+        msgEl.style.cssText = `padding: 8px 10px; border-radius: 6px; max-width: 85%; word-wrap: break-word; background: ${isOwn ? 'var(--nova-primary)30' : 'rgba(255, 255, 255, 0.1)'}; color: white; align-self: ${isOwn ? 'flex-end' : 'flex-start'}; border-left: 2px solid ${isOwn ? '#2ecc71' : 'var(--nova-primary)'}; font-size: 12px;`;
 
         const time = new Date(timestamp || Date.now());
         const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        msgEl.innerHTML = `<div style="font-weight: bold; font-size: 11px; color: var(--nova-primary);">${username}</div><div>${message}</div><div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">${timeStr}</div>`;
+        const ownerBadge = isOwn ? '<span style="background: #2ecc71; color: black; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; margin-left: 6px;">YOU</span>' : '';
+
+        msgEl.innerHTML = `<div style="font-weight: bold; font-size: 11px; color: ${isOwn ? '#2ecc71' : 'var(--nova-primary)'}; display: flex; align-items: center;">${username}${ownerBadge}</div><div>${message}</div><div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">${timeStr}</div>`;
 
         messagesContainer.appendChild(msgEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
