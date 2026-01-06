@@ -59,7 +59,6 @@ NovaCore V3 Enhanced is a powerful, modular Tampermonkey userscript that enhance
 - **Responsive UI** - Works perfectly on desktop and mobile devices
 - **Fullscreen Support** - Auto fullscreen button for instant fullscreen toggling
 - **Passive Event Listeners** - Improved browser performance with non-blocking event handling
-- ** NEW UI CHAT FOR NOVACORE USERS! **
 
 ---
 
