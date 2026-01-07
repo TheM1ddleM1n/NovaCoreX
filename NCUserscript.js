@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         NovaCore V3! (OLD)
+// @name         NovaCore V3! (WITH PING)
 // @namespace    TheM1ddleM1n :D
-// @version      3.3
-// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code
+// @version      3.4
+// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code + PING COUNTER
 // @author       (Cant reveal who im), TheM1ddleM1n
 // @match        https://miniblox.io/
 // @grant        none
@@ -22,6 +22,7 @@
         FPS_UPDATE_INTERVAL: 500,
         CPS_UPDATE_INTERVAL: 250,
         CPS_WINDOW: 1000,
+        PING_UPDATE_INTERVAL: 1000,
         SAVE_DEBOUNCE: 1000,
         STATS_UPDATE_INTERVAL: 5000
     };
@@ -37,7 +38,7 @@
     const DEFAULT_MENU_KEY = '\\';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
     const SESSION_COUNT_KEY = 'novacore_session_count';
-    const SCRIPT_VERSION = '3.3';
+    const SCRIPT_VERSION = '3.4';
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreForMiniblox';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
@@ -67,25 +68,33 @@
     };
 
     const stateData = {
-        fpsShown: false, cpsShown: false, realTimeShown: false, antiAfkEnabled: false,
+        fpsShown: false, cpsShown: false, realTimeShown: false, pingShown: false, antiAfkEnabled: false,
         menuKey: DEFAULT_MENU_KEY, currentTheme: 'cyan',
-        counters: { fps: null, cps: null, realTime: null, antiAfk: null },
-        intervals: { fps: null, cps: null, realTime: null, antiAfk: null, statsUpdate: null },
+        counters: { fps: null, cps: null, realTime: null, ping: null, antiAfk: null },
+        intervals: { fps: null, cps: null, realTime: null, ping: null, antiAfk: null, statsUpdate: null },
         drag: {
             fps: { active: false, offsetX: 0, offsetY: 0 },
             cps: { active: false, offsetX: 0, offsetY: 0 },
             realTime: { active: false, offsetX: 0, offsetY: 0 },
+            ping: { active: false, offsetX: 0, offsetY: 0 },
             antiAfk: { active: false, offsetX: 0, offsetY: 0 }
         },
         cpsClicks: [],
         rafId: null,
-        cleanupFunctions: { fps: null, cps: null, realTime: null, antiAfk: null },
+        cleanupFunctions: { fps: null, cps: null, realTime: null, ping: null, antiAfk: null },
         updateAvailable: false,
         latestVersion: null,
         antiAfkCountdown: 5,
         performanceLoopRunning: false,
         activeRAFFeatures: new Set(),
         eventListeners: new Map(),
+        pingStats: {
+            currentPing: 0,
+            averagePing: 0,
+            peakPing: 0,
+            minPing: Infinity,
+            pingHistory: []
+        },
         sessionStats: {
             totalClicks: 0, totalKeys: 0, peakCPS: 0, peakFPS: 0, sessionCount: 0,
             startTime: null, clicksBySecond: [], fpsHistory: [], averageFPS: 0,
@@ -132,11 +141,12 @@
             const settings = {
                 version: SCRIPT_VERSION,
                 fpsShown: stateData.fpsShown, cpsShown: stateData.cpsShown, realTimeShown: stateData.realTimeShown,
-                menuKey: stateData.menuKey, currentTheme: stateData.currentTheme,
+                pingShown: stateData.pingShown, menuKey: stateData.menuKey, currentTheme: stateData.currentTheme,
                 positions: {
                     fps: stateData.counters.fps ? { left: stateData.counters.fps.style.left, top: stateData.counters.fps.style.top } : null,
                     cps: stateData.counters.cps ? { left: stateData.counters.cps.style.left, top: stateData.counters.cps.style.top } : null,
-                    realTime: stateData.counters.realTime ? { left: stateData.counters.realTime.style.left, top: stateData.counters.realTime.style.top } : null
+                    realTime: stateData.counters.realTime ? { left: stateData.counters.realTime.style.left, top: stateData.counters.realTime.style.top } : null,
+                    ping: stateData.counters.ping ? { left: stateData.counters.ping.style.left, top: stateData.counters.ping.style.top } : null
                 }
             };
             try {
@@ -300,10 +310,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     // CONSOLIDATED COUNTER FACTORY FUNCTION
     // ============================================
 
-    /**
-     * Factory function to create and manage counter elements
-     * @param {Object} config - Counter configuration object
-     */
     function createCounterElement(config) {
         const {
             id,
@@ -347,11 +353,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         return counter;
     }
 
-    /**
-     * Safely update counter text content
-     * @param {string} counterType - Counter type key (fps, cps, etc)
-     * @param {string} text - New text to display
-     */
     function updateCounterText(counterType, text) {
         if (!state.counters[counterType]) return;
 
@@ -637,6 +638,82 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
     }
 
+    // PING COUNTER - NEW FEATURE
+    function createPingCounter() {
+        const counter = createCounterElement({
+            id: 'ping-counter',
+            counterType: 'ping',
+            initialText: 'PING: 0ms',
+            tooltip: 'Network Latency',
+            position: { left: '50px', top: '220px' },
+            isDraggable: true
+        });
+        state.counters.ping = counter;
+        return counter;
+    }
+
+    function measurePing() {
+        return new Promise((resolve) => {
+            const startTime = performance.now();
+            
+            // Try to fetch a tiny resource to measure latency
+            fetch(window.location.origin + '/', { 
+                method: 'HEAD',
+                cache: 'no-cache',
+                mode: 'no-cors'
+            })
+            .then(() => {
+                const ping = Math.round(performance.now() - startTime);
+                resolve(ping);
+            })
+            .catch(() => {
+                // Fallback if fetch fails
+                resolve(0);
+            });
+        });
+    }
+
+    function updatePingCounter() {
+        measurePing().then(ping => {
+            state.pingStats.currentPing = ping;
+            
+            // Update statistics
+            state.pingStats.pingHistory.push(ping);
+            if (state.pingStats.pingHistory.length > 60) {
+                state.pingStats.pingHistory.shift();
+            }
+            
+            const sum = state.pingStats.pingHistory.reduce((a, b) => a + b, 0);
+            state.pingStats.averagePing = Math.round(sum / state.pingStats.pingHistory.length);
+            state.pingStats.peakPing = Math.max(...state.pingStats.pingHistory);
+            state.pingStats.minPing = Math.min(...state.pingStats.pingHistory);
+            
+            updateCounterText('ping', `PING: ${ping}ms`);
+        });
+    }
+
+    function startPingCounter() {
+        if (!state.counters.ping) createPingCounter();
+        updatePingCounter();
+        state.intervals.ping = setInterval(updatePingCounter, TIMING.PING_UPDATE_INTERVAL);
+    }
+
+    function stopPingCounter() {
+        if (state.cleanupFunctions.ping) {
+            state.cleanupFunctions.ping();
+            state.cleanupFunctions.ping = null;
+        }
+        if (state.counters.ping) {
+            state.counters.ping.remove();
+            state.counters.ping = null;
+        }
+        if (state.intervals.ping) {
+            clearInterval(state.intervals.ping);
+            state.intervals.ping = null;
+        }
+        state.pingStats.pingHistory = [];
+    }
+
     // Anti-AFK Counter
     function createAntiAfkCounter() {
         const counter = createCounterElement({
@@ -644,7 +721,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             counterType: 'antiAfk',
             initialText: '⚡ Jumping in 5s',
             tooltip: 'Anti-AFK - Auto jumps to prevent kick',
-            position: { left: '50px', top: '220px' },
+            position: { left: '50px', top: '290px' },
             isDraggable: true
         });
         state.counters.antiAfk = counter;
@@ -867,6 +944,19 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         });
         menuContent.appendChild(realTimeBtn);
 
+        const pingBtn = createButton('Ping Counter', () => {
+            if (state.pingShown) {
+                stopPingCounter();
+                pingBtn.textContent = 'Ping Counter';
+                state.pingShown = false;
+            } else {
+                startPingCounter();
+                pingBtn.textContent = 'Hide Ping Counter';
+                state.pingShown = true;
+            }
+        });
+        menuContent.appendChild(pingBtn);
+
         const antiAfkBtn = createButton('Anti-AFK', () => {
             if (state.antiAfkEnabled) {
                 stopAntiAfk();
@@ -1048,6 +1138,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         cachedElements.fpsBtn = fpsBtn;
         cachedElements.cpsBtn = cpsBtn;
         cachedElements.realTimeBtn = realTimeBtn;
+        cachedElements.pingBtn = pingBtn;
         cachedElements.antiAfkBtn = antiAfkBtn;
         cachedElements.fullscreenBtn = fullscreenBtn;
         cachedElements.focusableElements = focusableElements;
@@ -1132,7 +1223,15 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 if (cachedElements.realTimeBtn) cachedElements.realTimeBtn.textContent = 'Hide Real Time';
             }
 
-
+            if (settings.pingShown) {
+                startPingCounter();
+                state.pingShown = true;
+                if (cachedElements.pingBtn) cachedElements.pingBtn.textContent = 'Hide Ping Counter';
+                if (settings.positions?.ping && state.counters.ping) {
+                    state.counters.ping.style.left = settings.positions.ping.left;
+                    state.counters.ping.style.top = settings.positions.ping.top;
+                }
+            }
         } catch (e) {
             console.error('[NovaCore] Failed to restore settings:', e);
         }
@@ -1143,6 +1242,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         stopFPSCounter();
         stopCPSCounter();
         stopRealTimeCounter();
+        stopPingCounter();
         stopAntiAfk();
 
         Object.values(state.intervals).forEach(interval => {
@@ -1160,7 +1260,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     window.addEventListener('beforeunload', globalCleanup);
 
     function init() {
-        console.log(`[NovaCore] Initializing v${SCRIPT_VERSION} (Optimized)...`);
+        console.log(`[NovaCore] Initializing v${SCRIPT_VERSION} (With Ping)...`);
 
         loadCustomTheme();
         initSessionStats();
