@@ -101,7 +101,7 @@
 
 ## 📋 Version History
 
-- **v3.4** — Ping counter, performance improvements, bug fixes
+- **v3.4** — Ping counter, performance improvements, bug fixes, Credit Update!
 
 - **v3.3** — Code refactoring, consolidated factory functions
 
