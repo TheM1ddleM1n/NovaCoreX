@@ -137,8 +137,8 @@
 
 ## 📞 Support
 
-- 🐛 Issues: [github.com/TheM1ddleM1n/NovaCoreForMiniblox/issues](https://github.com/TheM1ddleM1n/NovaCoreX/issues)
-- 💬 Discussions: [github.com/TheM1ddleM1n/NovaCoreForMiniblox/discussions](https://github.com/TheM1ddleM1n/NovaCoreX/discussions)
+- 🐛 Issues: [github.com/TheM1ddleM1n/NovaCoreX/issues](https://github.com/TheM1ddleM1n/NovaCoreX/issues)
+- 💬 Discussions: [github.com/TheM1ddleM1n/NovaCoreX/discussions](https://github.com/TheM1ddleM1n/NovaCoreX/discussions)
 
 ---
 
