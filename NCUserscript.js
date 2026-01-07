@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         NovaCore V3! (WITH PING)
-// @namespace    TheM1ddleM1n :D
+// @name         NovaCore V3!
+// @namespace    M1ddleM1n and Scripter on top!
 // @version      3.4
-// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code + PING COUNTER
-// @author       (Cant reveal who im), TheM1ddleM1n
+// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code and a ping counter (for network)
+// @author       Scripter, TheM1ddleM1n
 // @match        https://miniblox.io/
 // @grant        none
 // ==/UserScript==
@@ -1119,8 +1119,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         creditsSection.innerHTML = `
             <div style="text-align: center; font-size: 0.85rem; color: #999;">
                 <div><strong style="color: var(--nova-primary);">NovaCore v${SCRIPT_VERSION}</strong></div>
-                <div>Original by <strong>@Scripter132132</strong></div>
-                <div>Enhanced by <strong>@TheM1ddleM1n</strong></div>
+                <div>Original repo by <strong>@Scripter132132</strong></div>
+                <div>Enhanced by <strong>@TheM1ddleM1n!</strong></div>
             </div>
         `;
         menuContent.appendChild(creditsSection);
