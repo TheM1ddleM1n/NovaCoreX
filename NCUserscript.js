@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name         NovaCore V3!
+// @name         NovaCoreX V3!
 // @namespace    M1ddleM1n and Scripter on top!
 // @version      3.4
-// @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code and a ping counter (for network)
+// @description  NovaCoreX V3 with optimized performance, zero lag, improved memory management, consolidated code and a ping counter (for network)
 // @author       Scripter, TheM1ddleM1n
-// @icon         https://raw.githubusercontent.com/TheM1ddleM1n/NovaCore-For-Miniblox/refs/heads/main/NovaCoreX.png
+// @icon         https://raw.githubusercontent.com/TheM1ddleM1n/NovaCoreX/refs/heads/main/NovaCoreX.png
 // @match        https://miniblox.io/
 // @grant        none
 // ==/UserScript==
@@ -40,7 +40,7 @@
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
     const SESSION_COUNT_KEY = 'novacore_session_count';
     const SCRIPT_VERSION = '3.4';
-    const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreForMiniblox';
+    const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreX';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
 
@@ -110,7 +110,7 @@
         try {
             return fn();
         } catch (error) {
-            console.error(`[NovaCore Error - ${context}]:`, error);
+            console.error(`[NovaCoreX Error - ${context}]:`, error);
             if (circuitBreaker.record(context)) {
                 return fallbackValue;
             }
@@ -154,7 +154,7 @@
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             } catch (e) {
                 if (e.name === 'QuotaExceededError') {
-                    console.warn('[NovaCore] Storage quota exceeded');
+                    console.warn('[NovaCoreX] Storage quota exceeded');
                     localStorage.removeItem(LAST_UPDATE_CHECK_KEY);
                 }
             }
@@ -213,7 +213,7 @@
             state.sessionStats.sessionCount = sessionCount;
             state.sessionStats.startTime = Date.now();
             localStorage.setItem(SESSION_COUNT_KEY, sessionCount.toString());
-            console.log(`[NovaCore] Session #${sessionCount} started`);
+            console.log(`[NovaCoreX] Session #${sessionCount} started`);
             state.intervals.statsUpdate = setInterval(updateStatsHistory, TIMING.STATS_UPDATE_INTERVAL);
         }, null, 'initSessionStats');
     }
@@ -420,7 +420,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         text.setAttribute('x', '50%');
         text.setAttribute('y', '70%');
         text.setAttribute('text-anchor', 'middle');
-        text.textContent = 'NovaCore';
+        text.textContent = 'NovaCoreX';
         svg.appendChild(text);
         clientNameContainer.appendChild(svg);
         clientNameContainer.innerHTML += '<span class="client-name-checkmark">✔️</span>';
@@ -442,7 +442,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function createPersistentHeader() {
         const header = document.createElement('div');
         header.id = 'nova-persistent-header';
-        header.textContent = 'Novacore💎';
+        header.textContent = 'NovaCoreX 💎';
         document.body.appendChild(header);
         cachedElements.header = header;
         return header;
@@ -639,7 +639,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
     }
 
-    // PING COUNTER - NEW FEATURE
+    // PING COUNTER
     function createPingCounter() {
         const counter = createCounterElement({
             id: 'ping-counter',
@@ -816,7 +816,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         if (!manual && lastCheck && (now - parseInt(lastCheck)) < UPDATE_CHECK_INTERVAL) {
             return;
         }
-        console.log('[NovaCore] Checking for updates...');
+        console.log('[NovaCoreX] Is checking for updates...');
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -841,7 +841,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                     state.updateAvailable = true;
                     showUpdateNotification(latestVersion);
                     if (cachedElements.checkUpdateBtn) {
-                        cachedElements.checkUpdateBtn.textContent = '🎉 Update Available!';
+                        cachedElements.checkUpdateBtn.textContent = '🎉 An Update Is Available!';
                         cachedElements.checkUpdateBtn.classList.add('update-now-btn');
                         cachedElements.checkUpdateBtn.onclick = () => {
                             window.open(`https://github.com/${GITHUB_REPO}/blob/main/NCUserscript.js`, '_blank');
@@ -852,7 +852,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                         cachedElements.updateStatus.style.color = '#2ecc71';
                     }
                 } else {
-                    console.log('[NovaCore] You are on the latest version');
+                    console.log('[NovaCoreX] You are already on the latest version');
                     state.updateAvailable = false;
                     if (manual && cachedElements.updateStatus) {
                         cachedElements.updateStatus.textContent = '✓ Latest version installed!';
@@ -862,7 +862,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             }
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.warn('[NovaCore] Update check timed out');
+                console.warn('[NovaCoreX] Update check timed out');
                 if (manual) alert('Update check timed out. Please try again.');
             } else {
                 console.error('[NovaCore] Update check failed:', error);
@@ -889,7 +889,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 
         const menuHeader = document.createElement('div');
         menuHeader.id = 'nova-menu-header';
-        menuHeader.textContent = 'Novacore💎';
+        menuHeader.textContent = 'NovaCoreX 💎';
         menuOverlay.appendChild(menuHeader);
 
         const menuContent = document.createElement('div');
@@ -1144,7 +1144,7 @@ creditsSection.innerHTML = `
             onmouseover="this.style.background='#e74c3c'; this.style.color='white'; this.style.transform='translateY(-2px)';"
             onmouseout="this.style.background='rgba(231, 76, 60, 0.2)'; this.style.color='#e74c3c'; this.style.transform='translateY(0)';"
             onclick="window.open('https://github.com/${GITHUB_REPO}/issues/new?labels=bug&title=Bug%20Report&body=**Description:**%0A%0A**Steps%20to%20Reproduce:**%0A%0A**Expected%20Behavior:**%0A%0A**Actual%20Behavior:**%0A%0A**NovaCore%20Version:** v${SCRIPT_VERSION}', '_blank');">
-            🐛 Report a Bug
+            🐛 Report a Bug?
         </button>
     </div>
 `;
@@ -1258,12 +1258,12 @@ menuContent.appendChild(creditsSection);
                 }
             }
         } catch (e) {
-            console.error('[NovaCore] Failed to restore settings:', e);
+            console.error('[NovaCoreX] Failed to restore settings:', e);
         }
     }
 
     function globalCleanup() {
-        console.log('[NovaCore] Cleaning up resources...');
+        console.log('[NovaCoreX] Is busy cleaning up resources...');
         stopFPSCounter();
         stopCPSCounter();
         stopRealTimeCounter();
@@ -1285,7 +1285,7 @@ menuContent.appendChild(creditsSection);
     window.addEventListener('beforeunload', globalCleanup);
 
     function init() {
-        console.log(`[NovaCore] Initializing v${SCRIPT_VERSION} (With Ping)...`);
+        console.log(`[NovaCoreX] Initializing v${SCRIPT_VERSION} (With Ping)...`);
 
         loadCustomTheme();
         initSessionStats();
@@ -1309,7 +1309,7 @@ menuContent.appendChild(creditsSection);
                 }, TIMING.HINT_TEXT_DURATION);
 
                 restoreSavedState();
-                console.log('[NovaCore] Initialization complete');
+                console.log('[NovaCoreX] Initialization completed!');
             }, TIMING.INTRO_FADE_OUT);
         }, TIMING.INTRO_TOTAL_DURATION);
     }
