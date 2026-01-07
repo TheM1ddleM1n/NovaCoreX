@@ -4,6 +4,7 @@
 // @version      3.4
 // @description  NovaCore V3 with optimized performance, zero lag, improved memory management, consolidated code and a ping counter (for network)
 // @author       Scripter, TheM1ddleM1n
+// @icon         https://raw.githubusercontent.com/TheM1ddleM1n/NovaCore-For-Miniblox/refs/heads/main/NovaCoreX.png
 // @match        https://miniblox.io/
 // @grant        none
 // ==/UserScript==
