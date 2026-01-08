@@ -28,13 +28,6 @@
         STATS_UPDATE_INTERVAL: 5000
     };
 
-    const THEMES = {
-        cyan: { name: 'Cyan (Default)', primary: '#00ffff', primaryRgb: '0, 255, 255', shadow: '#00ffff' },
-        red: { name: 'Crimson Fire', primary: '#e74c3c', primaryRgb: '231, 76, 60', shadow: '#e74c3c' },
-        gold: { name: 'Golden Glow', primary: '#f39c12', primaryRgb: '243, 156, 18', shadow: '#f39c12' },
-        custom: { name: 'Custom', primary: '#00ffff', primaryRgb: '0, 255, 255', shadow: '#00ffff' }
-    };
-
     const SETTINGS_KEY = 'novacore_settings';
     const DEFAULT_MENU_KEY = '\\';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
@@ -43,6 +36,7 @@
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreX';
     const LAST_UPDATE_CHECK_KEY = 'novacore_last_update_check';
     const UPDATE_CHECK_INTERVAL = 3600000;
+    const DEFAULT_COLOR = '#00ffff';
 
     const circuitBreaker = {
         failures: new Map(),
@@ -70,7 +64,7 @@
 
     const stateData = {
         fpsShown: false, cpsShown: false, realTimeShown: false, pingShown: false, antiAfkEnabled: false,
-        menuKey: DEFAULT_MENU_KEY, currentTheme: 'cyan',
+        menuKey: DEFAULT_MENU_KEY,
         counters: { fps: null, cps: null, realTime: null, ping: null, antiAfk: null },
         intervals: { fps: null, cps: null, realTime: null, ping: null, antiAfk: null, statsUpdate: null },
         drag: {
@@ -100,7 +94,8 @@
             totalClicks: 0, totalKeys: 0, peakCPS: 0, peakFPS: 0, sessionCount: 0,
             startTime: null, clicksBySecond: [], fpsHistory: [], averageFPS: 0,
             averageCPS: 0, totalSessionTime: 0
-        }
+        },
+        customColor: DEFAULT_COLOR
     };
 
     const cachedElements = {};
@@ -142,7 +137,7 @@
             const settings = {
                 version: SCRIPT_VERSION,
                 fpsShown: stateData.fpsShown, cpsShown: stateData.cpsShown, realTimeShown: stateData.realTimeShown,
-                pingShown: stateData.pingShown, menuKey: stateData.menuKey, currentTheme: stateData.currentTheme,
+                pingShown: stateData.pingShown, menuKey: stateData.menuKey,
                 positions: {
                     fps: stateData.counters.fps ? { left: stateData.counters.fps.style.left, top: stateData.counters.fps.style.top } : null,
                     cps: stateData.counters.cps ? { left: stateData.counters.cps.style.left, top: stateData.counters.cps.style.top } : null,
@@ -167,7 +162,7 @@
         set(target, prop, value) {
             const oldValue = target[prop];
             target[prop] = value;
-            if ((prop.includes('Shown') || prop === 'currentTheme') && oldValue !== value) {
+            if ((prop.includes('Shown') || prop === 'customColor') && oldValue !== value) {
                 debouncedSave();
             }
             return true;
@@ -192,19 +187,18 @@
         }
     }
 
-    function loadCustomTheme() {
-        const customColor = localStorage.getItem(CUSTOM_COLOR_KEY);
-        if (customColor) {
-            THEMES.custom.primary = customColor;
-            THEMES.custom.shadow = customColor;
-        }
+    function applyTheme(color) {
+        document.documentElement.style.setProperty('--nova-primary', color);
+        document.documentElement.style.setProperty('--nova-shadow', color);
+        state.customColor = color;
+        localStorage.setItem(CUSTOM_COLOR_KEY, color);
     }
 
-    function applyTheme(themeName) {
-        const theme = THEMES[themeName] || THEMES.cyan;
-        document.documentElement.style.setProperty('--nova-primary', theme.primary);
-        document.documentElement.style.setProperty('--nova-shadow', theme.shadow);
-        state.currentTheme = themeName;
+    function loadCustomColor() {
+        const savedColor = localStorage.getItem(CUSTOM_COLOR_KEY);
+        const colorToUse = savedColor || DEFAULT_COLOR;
+        state.customColor = colorToUse;
+        applyTheme(colorToUse);
     }
 
     function initSessionStats() {
@@ -276,14 +270,9 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 .settings-section { border-top: 1px solid rgba(0, 255, 255, 0.3); padding-top: 24px; margin-top: 16px; }
 .settings-label { font-size: 0.9rem; color: var(--nova-primary); margin-bottom: 10px; display: block; font-weight: 600; }
 
-.theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
-.theme-btn { background: rgba(0, 0, 0, 0.8); border: 2px solid; font-family: Segoe UI, sans-serif; font-weight: 600; font-size: 0.85rem; padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-.theme-btn:hover { transform: translateY(-2px); }
-.theme-btn.active { box-shadow: 0 0 15px currentColor; font-weight: 900; }
-
-.theme-btn.cyan { border-color: #00ffff; color: #00ffff; }
-.theme-btn.red { border-color: #e74c3c; color: #e74c3c; }
-.theme-btn.gold { border-color: #f39c12; color: #f39c12; }
+.color-picker-wrapper { margin-top: 12px; }
+.color-picker-input { width: 100%; height: 50px; border: 2px solid var(--nova-primary); border-radius: 8px; cursor: pointer; background: rgba(0, 0, 0, 0.8); transition: all 0.3s ease; }
+.color-picker-input:hover { box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); transform: scale(1.02); }
 
 .update-notification { position: fixed; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; padding: 16px 20px; color: white; z-index: 100000001; max-width: 320px; animation: slideInRight 0.5s ease; }
 .update-notification-header { margin-bottom: 12px; font-size: 1.1rem; font-weight: 700; color: var(--nova-primary); }
@@ -300,16 +289,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 
 .keybind-input { width: 100%; background: rgba(0, 0, 0, 0.8); border: 2px solid var(--nova-primary); color: var(--nova-primary); font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 1rem; padding: 8px 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease; }
 .keybind-input:focus { outline: none; box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); background: rgba(0, 255, 255, 0.15); transform: scale(1.02); }
-
-.color-picker-wrapper { margin-top: 12px; }
-.color-picker-input { width: 100%; height: 50px; border: 2px solid var(--nova-primary); border-radius: 8px; cursor: pointer; background: rgba(0, 0, 0, 0.8); transition: all 0.3s ease; }
-.color-picker-input:hover { box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); transform: scale(1.02); }
 `;
     document.head.appendChild(style);
-
-    // ============================================
-    // CONSOLIDATED COUNTER FACTORY FUNCTION
-    // ============================================
 
     function createCounterElement(config) {
         const {
@@ -492,7 +473,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         return () => removeAllListeners(listenerId);
     }
 
-    // FPS Counter
     function createFPSCounter() {
         const counter = createCounterElement({
             id: 'fps-counter',
@@ -525,7 +505,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         stopPerformanceLoop();
     }
 
-    // CPS Counter
     function createCPSCounter() {
         const counter = createCounterElement({
             id: 'cps-counter',
@@ -597,7 +576,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         state.cpsClicks = [];
     }
 
-    // Real Time Counter
     function createRealTimeCounter() {
         const counter = createCounterElement({
             id: 'real-time-counter',
@@ -639,7 +617,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
     }
 
-    // PING COUNTER
     function createPingCounter() {
         const counter = createCounterElement({
             id: 'ping-counter',
@@ -657,7 +634,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         return new Promise((resolve) => {
             const startTime = performance.now();
 
-            // Try to fetch a tiny resource to measure latency
             fetch(window.location.origin + '/', {
                 method: 'HEAD',
                 cache: 'no-cache',
@@ -668,7 +644,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 resolve(ping);
             })
             .catch(() => {
-                // Fallback if fetch fails
                 resolve(0);
             });
         });
@@ -678,7 +653,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         measurePing().then(ping => {
             state.pingStats.currentPing = ping;
 
-            // Update statistics
             state.pingStats.pingHistory.push(ping);
             if (state.pingStats.pingHistory.length > 60) {
                 state.pingStats.pingHistory.shift();
@@ -715,7 +689,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         state.pingStats.pingHistory = [];
     }
 
-    // Anti-AFK Counter
     function createAntiAfkCounter() {
         const counter = createCounterElement({
             id: 'anti-afk-counter',
@@ -769,7 +742,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
     }
 
-    // Update Checker
     function compareVersions(v1, v2) {
         const parse = (v) => v.split('.').map(n => parseInt(n) || 0);
         const parts1 = parse(v1);
@@ -874,15 +846,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         }
     }
 
-    function hexToRgb(hex) {
-        const rgb = parseInt(hex.slice(1), 16);
-        const r = (rgb >> 16) & 255;
-        const g = (rgb >> 8) & 255;
-        const b = rgb & 255;
-        return `${r}, ${g}, ${b}`;
-    }
-
-    // Menu
     function createMenu() {
         const menuOverlay = document.createElement('div');
         menuOverlay.id = 'nova-menu-overlay';
@@ -983,48 +946,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         });
         menuContent.appendChild(fullscreenBtn);
 
-        // Theme section
-        const themeSection = document.createElement('div');
-        themeSection.className = 'settings-section';
-        const themeLabel = document.createElement('label');
-        themeLabel.className = 'settings-label';
-        themeLabel.textContent = 'Theme:';
-        themeSection.appendChild(themeLabel);
+        // Custom Color Picker Section
+        const colorSection = document.createElement('div');
+        colorSection.className = 'settings-section';
 
-        const themeGrid = document.createElement('div');
-        themeGrid.className = 'theme-grid';
-
-        Object.keys(THEMES).forEach(themeKey => {
-            const theme = THEMES[themeKey];
-            const themeBtn = document.createElement('button');
-            themeBtn.className = `theme-btn ${themeKey}`;
-            themeBtn.textContent = theme.name.replace(' (Default)', '');
-
-            if (state.currentTheme === themeKey) {
-                themeBtn.classList.add('active');
-            }
-
-            themeBtn.addEventListener('click', () => {
-                document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-                themeBtn.classList.add('active');
-                applyTheme(themeKey);
-            });
-
-            focusableElements.push(themeBtn);
-            themeGrid.appendChild(themeBtn);
-        });
-
-        themeSection.appendChild(themeGrid);
-        menuContent.appendChild(themeSection);
-
-        // Custom Color Picker
-        const colorPickerSection = document.createElement('div');
-        colorPickerSection.className = 'settings-section';
-
-        const colorPickerLabel = document.createElement('label');
-        colorPickerLabel.className = 'settings-label';
-        colorPickerLabel.textContent = 'Custom Theme Color:';
-        colorPickerSection.appendChild(colorPickerLabel);
+        const colorLabel = document.createElement('label');
+        colorLabel.className = 'settings-label';
+        colorLabel.textContent = 'Theme Color:';
+        colorSection.appendChild(colorLabel);
 
         const colorPickerWrapper = document.createElement('div');
         colorPickerWrapper.className = 'color-picker-wrapper';
@@ -1032,22 +961,23 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.className = 'color-picker-input';
-        colorInput.value = THEMES.custom.primary;
+        colorInput.value = state.customColor;
 
         colorInput.addEventListener('change', (e) => {
             const color = e.target.value;
-            localStorage.setItem(CUSTOM_COLOR_KEY, color);
-            THEMES.custom.primary = color;
-            THEMES.custom.shadow = color;
-            applyTheme('custom');
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.theme-btn.custom')?.classList.add('active');
+            applyTheme(color);
+        });
+
+        colorInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            document.documentElement.style.setProperty('--nova-primary', color);
+            document.documentElement.style.setProperty('--nova-shadow', color);
         });
 
         focusableElements.push(colorInput);
         colorPickerWrapper.appendChild(colorInput);
-        colorPickerSection.appendChild(colorPickerWrapper);
-        menuContent.appendChild(colorPickerSection);
+        colorSection.appendChild(colorPickerWrapper);
+        menuContent.appendChild(colorSection);
 
         // Keybind section
         const settingsSection = document.createElement('div');
@@ -1115,9 +1045,10 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         cachedElements.updateStatus = updateStatus;
 
         menuContent.appendChild(updateSection);
+
         const creditsSection = document.createElement('div');
-creditsSection.className = 'settings-section';
-creditsSection.innerHTML = `
+        creditsSection.className = 'settings-section';
+        creditsSection.innerHTML = `
     <div style="text-align: center; font-size: 0.85rem; color: #999;">
         <div style="margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(0, 255, 255, 0.2);">
             <strong style="color: var(--nova-primary); font-size: 1rem; display: block; margin-bottom: 6px;">✨ NovaCoreX v${SCRIPT_VERSION}</strong>
@@ -1148,7 +1079,7 @@ creditsSection.innerHTML = `
         </button>
     </div>
 `;
-menuContent.appendChild(creditsSection);
+        menuContent.appendChild(creditsSection);
 
         menuOverlay.appendChild(menuContent);
         document.body.appendChild(menuOverlay);
@@ -1222,10 +1153,6 @@ menuContent.appendChild(creditsSection);
                 }
             }
 
-            if (settings.currentTheme) {
-                applyTheme(settings.currentTheme);
-            }
-
             if (settings.fpsShown) {
                 startFPSCounter();
                 state.fpsShown = true;
@@ -1285,9 +1212,9 @@ menuContent.appendChild(creditsSection);
     window.addEventListener('beforeunload', globalCleanup);
 
     function init() {
-        console.log(`[NovaCoreX] Initializing v${SCRIPT_VERSION} (With Ping)...`);
+        console.log(`[NovaCoreX] Initializing v${SCRIPT_VERSION} (Custom Theme Only)...`);
 
-        loadCustomTheme();
+        loadCustomColor();
         initSessionStats();
 
         const intro = createIntro();
