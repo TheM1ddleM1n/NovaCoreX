@@ -11,6 +11,7 @@
 
 (function() {
     'use strict';
+    document.title = '𝙉𝙤𝙫𝙖𝘾𝙤𝙧𝙚 𝙓 𝙁𝙤𝙧 𝙈𝙞𝙣𝙞𝙗𝙡𝙤𝙭!';
 
     const TIMING = {
         INTRO_CHECK_APPEAR: 900,
