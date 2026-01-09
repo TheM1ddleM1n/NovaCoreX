@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NovaCoreX V3!
 // @namespace    M1ddleM1n and Scripter on top!
-// @version      3.5
+// @version      3.4
 // @description  NovaCoreX V3 with optimized performance, zero lag, improved memory management, consolidated code and a ping counter (for network)
 // @author       Scripter, TheM1ddleM1n
 // @icon         https://raw.githubusercontent.com/TheM1ddleM1n/NovaCoreX/refs/heads/main/NovaCoreX.png
@@ -229,7 +229,6 @@
     const style = document.createElement('style');
     style.textContent = `
 :root { --nova-primary: #00ffff; --nova-shadow: #00ffff; --nova-bg-dark: #000000; }
-@keyframes slideDownInTop { 0% { opacity: 0; transform: translate(-50%, -70px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes checkPopIn { 0% { opacity: 0; transform: scale(0) rotate(-45deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
 @keyframes fadeScaleIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes strokeDashoffsetAnim { 0% { stroke-dashoffset: 1000; opacity: 0; } 100% { stroke-dashoffset: 0; opacity: 1; } }
@@ -275,7 +274,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 .color-picker-input { width: 100%; height: 50px; border: 2px solid var(--nova-primary); border-radius: 8px; cursor: pointer; background: rgba(0, 0, 0, 0.8); transition: all 0.3s ease; }
 .color-picker-input:hover { box-shadow: 0 0 12px rgba(0, 255, 255, 0.6); transform: scale(1.02); }
 
-.update-notification { position: fixed; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; padding: 16px 20px; color: white; z-index: 100000001; max-width: 320px; animation: slideInRight 0.5s ease; }
+.update-notification { position: fixed; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--nova-primary); border-radius: 12px; padding: 16px 20px; color: white; z-index: 100000001; max-width: 320px; animation: slideDownInTop 0.5s ease; }
 .update-notification-header { margin-bottom: 12px; font-size: 1.1rem; font-weight: 700; color: var(--nova-primary); }
 .update-notification-body { font-size: 0.95rem; line-height: 1.5; margin-bottom: 14px; color: #ddd; }
 .update-notification-version { color: var(--nova-primary); font-weight: 700; }
