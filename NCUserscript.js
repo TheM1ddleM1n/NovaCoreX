@@ -509,16 +509,13 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function measurePing() {
         return new Promise((resolve) => {
             const startTime = performance.now();
-            const timeout = setTimeout(() => resolve(0), 5000);
             fetch(window.location.origin + '/', {
                 method: 'HEAD',
                 cache: 'no-cache',
                 mode: 'no-cors'
             }).then(() => {
-                clearTimeout(timeout);
                 resolve(Math.round(performance.now() - startTime));
             }).catch(() => {
-                clearTimeout(timeout);
                 resolve(0);
             });
         });
@@ -565,8 +562,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const down = new KeyboardEvent("keydown", { key: " ", code: "Space", keyCode: 32, which: 32, bubbles: true });
         const up = new KeyboardEvent("keyup", { key: " ", code: "Space", keyCode: 32, which: 32, bubbles: true });
         window.dispatchEvent(down);
-        const t = setTimeout(() => window.dispatchEvent(up), 50);
-        trackTimeout(t);
+        setTimeout(() => window.dispatchEvent(up), 50);
     }
 
     function updateAntiAfkCounter() {
@@ -596,6 +592,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     }
 
     function createMenu() {
+        if (cachedElements.menu) return cachedElements.menu;
+        
         const menuOverlay = document.createElement('div');
         menuOverlay.id = 'nova-menu-overlay';
         const menuHeader = document.createElement('div');
@@ -604,12 +602,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         menuOverlay.appendChild(menuHeader);
         const menuContent = document.createElement('div');
         menuContent.id = 'nova-menu-content';
+        const focusableElements = [];
 
         const createButton = (text, onClick) => {
             const btn = document.createElement('button');
             btn.className = 'nova-menu-btn';
             btn.textContent = text;
-            btn.addEventListener('click', onClick);
+            btn.addEventListener('click', onClick, { passive: false });
+            focusableElements.push(btn);
             return btn;
         };
 
@@ -618,40 +618,35 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             else { state.fpsShown = true; startFPSCounter(); fpsBtn.textContent = 'Hide FPS Counter'; }
         });
         menuContent.appendChild(fpsBtn);
-        cachedElements.fpsBtn = fpsBtn;
 
         const cpsBtn = createButton('CPS Counter', () => {
             if (state.cpsShown) { stopCPSCounter(); cpsBtn.textContent = 'CPS Counter'; state.cpsShown = false; }
             else { startCPSCounter(); cpsBtn.textContent = 'Hide CPS Counter'; state.cpsShown = true; }
         });
         menuContent.appendChild(cpsBtn);
-        cachedElements.cpsBtn = cpsBtn;
 
         const realTimeBtn = createButton('Real Time', () => {
             if (state.realTimeShown) { stopRealTimeCounter(); realTimeBtn.textContent = 'Real Time'; state.realTimeShown = false; }
             else { startRealTimeCounter(); realTimeBtn.textContent = 'Hide Real Time'; state.realTimeShown = true; }
         });
         menuContent.appendChild(realTimeBtn);
-        cachedElements.realTimeBtn = realTimeBtn;
 
         const pingBtn = createButton('Ping Counter', () => {
             if (state.pingShown) { stopPingCounter(); pingBtn.textContent = 'Ping Counter'; state.pingShown = false; }
             else { startPingCounter(); pingBtn.textContent = 'Hide Ping Counter'; state.pingShown = true; }
         });
         menuContent.appendChild(pingBtn);
-        cachedElements.pingBtn = pingBtn;
 
         const antiAfkBtn = createButton('Anti-AFK', () => {
             if (state.antiAfkEnabled) { stopAntiAfk(); antiAfkBtn.textContent = 'Anti-AFK'; state.antiAfkEnabled = false; }
             else { startAntiAfk(); antiAfkBtn.textContent = 'Disable Anti-AFK'; state.antiAfkEnabled = true; }
         });
         menuContent.appendChild(antiAfkBtn);
-        cachedElements.antiAfkBtn = antiAfkBtn;
 
         const fullscreenBtn = createButton('Auto Fullscreen', () => {
             const elem = document.documentElement;
             if (!document.fullscreenElement) {
-                elem.requestFullscreen().catch(err => { alert(`Error: ${err.message}`); });
+                elem.requestFullscreen().catch(err => { console.error(`Error: ${err.message}`); });
             } else {
                 document.exitFullscreen().catch(() => {});
             }
@@ -674,6 +669,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             document.documentElement.style.setProperty('--nova-primary', color);
             document.documentElement.style.setProperty('--nova-shadow', color);
         });
+        focusableElements.push(colorInput);
         colorSection.appendChild(colorInput);
         menuContent.appendChild(colorSection);
 
@@ -697,6 +693,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             if (cachedElements.hint) cachedElements.hint.textContent = `Press ${state.menuKey} To Open Menu!`;
             keybindInput.blur();
         });
+        focusableElements.push(keybindInput);
         settingsSection.appendChild(keybindInput);
         menuContent.appendChild(settingsSection);
 
@@ -734,25 +731,31 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         document.body.appendChild(menuOverlay);
         menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) closeMenu(); });
         cachedElements.menu = menuOverlay;
+        cachedElements.fpsBtn = fpsBtn;
+        cachedElements.cpsBtn = cpsBtn;
+        cachedElements.realTimeBtn = realTimeBtn;
+        cachedElements.pingBtn = pingBtn;
+        cachedElements.antiAfkBtn = antiAfkBtn;
+        cachedElements.fullscreenBtn = fullscreenBtn;
+        cachedElements.focusableElements = focusableElements;
         return menuOverlay;
     }
 
     function openMenu() {
-        if (cachedElements.menu) {
-            cachedElements.menu.classList.add('show');
-            if (cachedElements.header) cachedElements.header.classList.remove('visible');
-        }
+        if (!cachedElements.menu) return;
+        cachedElements.menu.classList.add('show');
+        if (cachedElements.header) cachedElements.header.classList.remove('visible');
     }
 
     function closeMenu() {
-        if (cachedElements.menu) {
-            cachedElements.menu.classList.remove('show');
-            if (cachedElements.header) cachedElements.header.classList.add('visible');
-        }
+        if (!cachedElements.menu) return;
+        cachedElements.menu.classList.remove('show');
+        if (cachedElements.header) cachedElements.header.classList.add('visible');
     }
 
     function toggleMenu() {
-        if (cachedElements.menu && cachedElements.menu.classList.contains('show')) {
+        if (!cachedElements.menu) return;
+        if (cachedElements.menu.classList.contains('show')) {
             closeMenu();
         } else {
             openMenu();
@@ -760,7 +763,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     }
 
     function setupKeyboardHandler() {
-        const handleKeyDown = (e) => {
+        const keydownHandler = (e) => {
             if (e.key === state.menuKey) {
                 e.preventDefault();
                 toggleMenu();
@@ -769,7 +772,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 closeMenu();
             }
         };
-        addManagedListener(window, 'keydown', handleKeyDown, 'menu_handler');
+        window.addEventListener('keydown', keydownHandler, { passive: false });
+        addManagedListener(window, 'keydown', keydownHandler, 'menu_keyboard');
     }
 
     function restoreSavedState() {
@@ -823,39 +827,45 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         stopAntiAfk();
         
         // Clear all intervals
-        Object.entries(state.intervals).forEach(([key, interval]) => { 
+        Object.values(state.intervals).forEach(interval => { 
             if (interval) { 
                 clearInterval(interval); 
                 untrackInterval(interval);
-                state.intervals[key] = null;
             } 
         });
         
         // Clear all timeouts
-        state.pendingTimeouts.forEach(timeout => clearTimeout(timeout));
-        state.pendingTimeouts.clear();
+        Array.from(state.pendingTimeouts).forEach(id => { 
+            clearTimeout(id); 
+            untrackTimeout(id);
+        });
         
-        // Clear RAF
+        // Cancel RAF
         if (state.rafId) {
             cancelAnimationFrame(state.rafId);
             state.rafId = null;
         }
         
-        // Remove all listeners
-        state.eventListeners.forEach((_, id) => removeAllListeners(id));
+        // Remove event listeners
+        state.eventListeners.forEach((listeners, id) => removeAllListeners(id));
         state.eventListeners.clear();
         
-        // Remove DOM elements
-        Object.values(cachedElements).forEach(el => {
-            if (el && el.parentElement) el.remove();
-        });
-        cachedElements = {};
-        
+        // Stop performance loop
         stopPerformanceLoop();
+        
+        // Remove DOM elements
+        ['header', 'hint', 'menu'].forEach(key => {
+            if (cachedElements[key] && cachedElements[key].parentElement) {
+                cachedElements[key].remove();
+                cachedElements[key] = null;
+            }
+        });
+        
         console.log('[NovaCoreX] Cleanup complete!');
     }
 
     window.addEventListener('beforeunload', globalCleanup);
+    window.addEventListener('pagehide', globalCleanup);
 
     function init() {
         console.log(`[NovaCoreX] Initializing v${SCRIPT_VERSION}...`);
@@ -866,20 +876,23 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const hint = createHintText();
         const menu = createMenu();
         setupKeyboardHandler();
-        const t = setTimeout(() => {
+        
+        const t5 = setTimeout(() => {
             intro.style.animation = 'fadeOut 1s ease forwards';
-            const t2 = setTimeout(() => {
-                intro.remove();
-                header.classList.add('visible');
-                hint.style.opacity = '1';
-                const t3 = setTimeout(() => { hint.style.opacity = '0'; }, TIMING.HINT_TEXT_DURATION);
-                trackTimeout(t3);
+            const t6 = setTimeout(() => {
+                if (intro.parentElement) intro.remove();
+                if (header) header.classList.add('visible');
+                if (hint) {
+                    hint.style.opacity = '1';
+                    const t7 = setTimeout(() => { if (hint) hint.style.opacity = '0'; }, TIMING.HINT_TEXT_DURATION);
+                    trackTimeout(t7);
+                }
                 restoreSavedState();
                 console.log('[NovaCoreX] Initialization completed!');
             }, TIMING.INTRO_FADE_OUT);
-            trackTimeout(t2);
+            trackTimeout(t6);
         }, TIMING.INTRO_TOTAL_DURATION);
-        trackTimeout(t);
+        trackTimeout(t5);
     }
 
     if (document.readyState === 'loading') {
