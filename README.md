@@ -1,172 +1,108 @@
-# NovaCoreX V3 Enhanced - Premium Miniblox Userscript 💎
+# NovaCoreX V3 - Premium Miniblox Userscript 💎
 
-<div align="center">
-
-![Version](https://img.shields.io/badge/version-3.4-custom?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-custom?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Tampermonkey-custom?style=for-the-badge)
-
-**A lightweight, feature-rich userscript for Miniblox with real-time monitoring, unlimited custom colors, and optimization.**
-
-[Installation](#-installation) • [Features](#-features) • [Usage](#-usage) • [Customization](#-customization) • [Troubleshooting](#-troubleshooting)
-
-</div>
+**The ultimate enhancement suite for Miniblox. Real-time performance monitoring, unlimited customization, and zero performance impact.**
 
 ---
 
-## 🚀 Installation
+## ⚡ Quick Start
 
-1. **Install Tampermonkey:** 
-   - [Chrome](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
-   - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)
-   - [Safari](https://apps.apple.com/app/tampermonkey/id1482490089)
-   - [Opera](https://addons.opera.com/en/extensions/details/tampermonkey-beta/)
-
-2. **Install NovaCoreX:** Click [here](https://github.com/TheM1ddleM1n/NovaCoreX/raw/main/NCUserscript.js) and confirm in Tampermonkey
-
-3. **Open** [miniblox.io](https://miniblox.io) and press `\` to open the menu
+1. **Install Tampermonkey** on [Chrome](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo) | [Firefox](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/) | [Safari](https://apps.apple.com/app/tampermonkey/id1482490089)
+2. **Install NovaCoreX** → [Click here](https://github.com/TheM1ddleM1n/NovaCoreX/raw/main/NCUserscript.js)
+3. **Open** [miniblox.io](https://miniblox.io) and press `\` (backslash)
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
-| Feature | Description |
+| Feature | What It Does |
 |---------|-------------|
-| **FPS Counter** | Real-time frames per second (updates every 500ms) |
-| **CPS Counter** | Clicks per second tracker with 1-second window |
+| **FPS Counter** | Real-time frame rate monitoring (500ms updates) |
+| **CPS Counter** | Clicks per second with 1-second rolling window |
 | **Real-Time Clock** | Check time without exiting fullscreen |
-| **Ping Counter** | Network latency monitoring |
-| **Anti-AFK** | Auto-jump every 5 seconds to prevent kicks |
-| **Custom Color Theme** | Unlimited color choices, persists across sessions |
-| **Draggable Counters** | Move any counter anywhere, positions auto-save |
-| **Custom Keybinds** | Set your preferred menu hotkey |
-| **Auto-Updates** | GitHub checker alerts you to new versions |
-| **Auto-Fullscreen** | One-click fullscreen toggle |
+| **Ping Monitor** | Network latency with avg/peak/min stats |
+| **Anti-AFK** | Auto-jump every 5 seconds (prevents kicks) |
+| **Unlimited Colors** | Pick ANY color with instant theme application |
+| **Draggable UI** | Move counters freely, auto-saves positions |
+| **Custom Keybind** | Change menu hotkey from default `\` |
+| **Session Stats** | Track performance across sessions |
+| **Zero Lag** | 50-70% lighter than competitors |
 
 ---
 
-## 🎮 Usage
+## 🎮 How to Use
 
-### Open Menu
-- Press `\` (backslash) — change keybind in settings
+**Open Menu:** Press `\` (change this in settings)
 
-### Enable Counters
-- Open menu → click any counter to toggle it on/off
-- **Drag** counters to reposition them (positions save automatically)
+**Toggle Features:**
+- Menu → Click any counter button to enable/disable
+- Positions save automatically when you drag them
 
-### Customize Color
-- Menu → **Custom Theme Color** → pick any color you want
-- Color persists across all page refreshes
-- All UI elements update to match your selected color
-
-### Anti-AFK
-- Menu → click **Anti-AFK** to enable
-- Script automatically jumps every 5 seconds
-- Prevents being kicked for inactivity
-
-### Change Keybind
-- Menu → **Menu Keybind** → press desired key
-- Settings save automatically
-
-### Check Updates
-- Menu → **Updates** → click **Check for Updates**
-- Notifies you when a newer version is available
-
----
-
-## 🎨 Customization
-
-### Color Picker
-The custom color picker allows you to select **any color** you want. Your selection is saved to browser storage and automatically applied on every page load.
-
-**How it works:**
+**Customize Colors:**
 1. Open menu with `\`
-2. Scroll to **Custom Theme Color**
-3. Click the color input box
-4. Choose your desired color
-5. Color applies instantly to all UI elements
+2. Scroll to "Theme Color"
+3. Click color picker and choose your color
+4. Instantly applies to all UI elements
 
-**Storage:** Colors are stored in `novacore_custom_color` localStorage key
+**Change Hotkey:**
+1. Menu → "Menu Keybind"
+2. Press your desired key
+3. Automatically updates everywhere
 
----
-
-## 🛠️ Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Script not showing | Refresh page (`F5`), check Tampermonkey is enabled |
-| Menu won't open | Try changing keybind in settings, maybe `\` is already bound |
-| Counters not updating | Make sure you're playing, disable/re-enable the counter |
-| Color not persisting | Check if localStorage is enabled, try a different browser |
-| Performance issues | Disable unnecessary counters, close other tabs |
+**Anti-AFK:**
+- Menu → Click "Anti-AFK"
+- Script auto-jumps every 5 seconds
+- Perfect for AFK activities
 
 ---
 
-## ⚙️ Technical Details
+## 🛠️ Technical Details
 
-**Performance:** 50-70% lighter than alternatives, zero-lag gameplay
-- Smart update intervals (FPS 500ms, CPS 250ms, Ping 1s)
-- Passive event listeners, optimized rendering
-- Perfect cleanup on exit, no memory leaks
+**Performance:** Optimized event listeners, passive event handling, smart update intervals
+- FPS: 500ms updates
+- CPS: 250ms updates  
+- Ping: 2000ms updates
+- Zero memory leaks, perfect cleanup on exit
 
 **Storage Keys:**
 - `novacore_settings` — Feature toggles, positions, keybinds
-- `novacore_custom_color` — Your selected custom color (persists forever)
-- `novacore_last_update_check` — Update checker timestamp
-- `novacore_session_count` — Session counter
+- `novacore_custom_color` — Your selected color (persists forever)
+- `novacore_session_count` — Session tracking
 
-**Default Color:**
-- Cyan (`#00ffff`) — Until you choose your own
+**Default Theme:** Cyan (`#00ffff`) until you customize
 
 ---
 
-## 📋 Version History
+## ❓ Troubleshooting
 
-- **v3.4** — Custom color only theme system, localStorage persistence, simplified UI
-
-- **v3.3** — Code refactoring, consolidated factory functions
-
-- **v3.2** — 150+ lines removed, unified counter updates
-
-- **v3.0-3.1** — Core optimizations, theme system, anti-AFK
-
-- **v2.0-2.9** — Development phases
-
-- **v1.0** — Original by @Scripter132132
+| Issue | Fix |
+|-------|-----|
+| Menu won't open | Try changing keybind (may conflict with game) |
+| Counters not updating | Refresh page, disable/re-enable feature |
+| Color not saving | Enable localStorage in browser settings |
+| Performance lag | Close other tabs, disable unnecessary counters |
+| Script not loading | Check Tampermonkey is enabled, refresh page |
 
 ---
 
-## 🤝 Contributing
+## 📋 Version Info
 
-- **Report bugs:** [GitHub Issues](https://github.com/TheM1ddleM1n/NovaCoreX/issues)
-- **Suggest features:** [GitHub Discussions](https://github.com/TheM1ddleM1n/NovaCoreX/discussions)
-- **Submit code:** Fork → create feature branch → submit PR
+**Current:** v3.6 (Fixed & Optimized)
+- ✅ Memory leak fixes
+- ✅ Broken UI corrections
+- ✅ Enhanced stability
 
----
+**Credits:**
+- **@Scripter132132** — Original creator
+- **@TheM1ddleM1n** — V3+ development & optimization
 
-## 📜 License & Credits
-
-**MIT License** — Free to use, modify, and distribute
-
-**Team:**
-- **@Scripter132132** — Original NovaCore V1 creator
-- **@TheM1ddleM1n** — V2-4 enhancements and maintenance
-
-**Thanks to:** Tampermonkey team, Miniblox community
+**License:** MIT (free to use, modify, distribute)
 
 ---
 
-## 📞 Support
+## 🤝 Support & Contribute
 
-- 🐛 Issues: [github.com/TheM1ddleM1n/NovaCoreX/issues](https://github.com/TheM1ddleM1n/NovaCoreX/issues)
-- 💬 Discussions: [github.com/TheM1ddleM1n/NovaCoreX/discussions](https://github.com/TheM1ddleM1n/NovaCoreX/discussions)
+- **Report Bugs:** [GitHub Issues](https://github.com/TheM1ddleM1n/NovaCoreX/issues)
+- **Suggest Features:** [GitHub Discussions](https://github.com/TheM1ddleM1n/NovaCoreX/discussions)
+- **Source Code:** [GitHub Repository](https://github.com/TheM1ddleM1n/NovaCoreX)
 
----
-
-<div align="center">
-
-**Made with 💎 for the Miniblox community**
-
-*Zero lag. Maximum customization. Pure enhancement.*
-
-</div>
+**Made with 💎 for the Miniblox community** — *Zero lag. Maximum customization. Pure enhancement.*
