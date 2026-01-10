@@ -16,7 +16,7 @@
     const TIMING = {
         INTRO_CHECK_APPEAR: 900, INTRO_BUTTON_EXIT: 3200, INTRO_TEXT_START: 4000,
         INTRO_CHECKMARK_APPEAR: 6300, INTRO_TOTAL_DURATION: 7000, INTRO_FADE_OUT: 1000,
-        HINT_TEXT_DURATION: 4000, FPS_UPDATE_INTERVAL: 500, CPS_UPDATE_INTERVAL: 250,
+        HINT_TEXT_DURATION: 4000, FPS_UPDATE_INTERVAL: 500, CPS_UPDATE_INTERVAL: 150,
         CPS_WINDOW: 1000, PING_UPDATE_INTERVAL: 2000, SAVE_DEBOUNCE: 2000, STATS_UPDATE_INTERVAL: 10000
     };
 
@@ -66,9 +66,9 @@
         let lastCall = 0, timeout;
         return function(...args) {
             const now = performance.now();
-            if (now - lastCall >= delay) { 
+            if (now - lastCall >= delay) {
                 lastCall = now;
-                func.apply(this, args); 
+                func.apply(this, args);
             } else if (!timeout) {
                 timeout = setTimeout(() => {
                     lastCall = performance.now();
@@ -81,9 +81,9 @@
 
     function debounce(func, delay) {
         let timeoutId;
-        return function(...args) { 
-            clearTimeout(timeoutId); 
-            timeoutId = setTimeout(() => func.apply(this, args), delay); 
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
     }
 
@@ -593,7 +593,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
 
     function createMenu() {
         if (cachedElements.menu) return cachedElements.menu;
-        
+
         const menuOverlay = document.createElement('div');
         menuOverlay.id = 'nova-menu-overlay';
         const menuHeader = document.createElement('div');
@@ -825,34 +825,34 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         stopRealTimeCounter();
         stopPingCounter();
         stopAntiAfk();
-        
+
         // Clear all intervals
-        Object.values(state.intervals).forEach(interval => { 
-            if (interval) { 
-                clearInterval(interval); 
+        Object.values(state.intervals).forEach(interval => {
+            if (interval) {
+                clearInterval(interval);
                 untrackInterval(interval);
-            } 
+            }
         });
-        
+
         // Clear all timeouts
-        Array.from(state.pendingTimeouts).forEach(id => { 
-            clearTimeout(id); 
+        Array.from(state.pendingTimeouts).forEach(id => {
+            clearTimeout(id);
             untrackTimeout(id);
         });
-        
+
         // Cancel RAF
         if (state.rafId) {
             cancelAnimationFrame(state.rafId);
             state.rafId = null;
         }
-        
+
         // Remove event listeners
         state.eventListeners.forEach((listeners, id) => removeAllListeners(id));
         state.eventListeners.clear();
-        
+
         // Stop performance loop
         stopPerformanceLoop();
-        
+
         // Remove DOM elements
         ['header', 'hint', 'menu'].forEach(key => {
             if (cachedElements[key] && cachedElements[key].parentElement) {
@@ -860,7 +860,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 cachedElements[key] = null;
             }
         });
-        
+
         console.log('[NovaCoreX] Cleanup complete!');
     }
 
@@ -876,7 +876,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const hint = createHintText();
         const menu = createMenu();
         setupKeyboardHandler();
-        
+
         const t5 = setTimeout(() => {
             intro.style.animation = 'fadeOut 1s ease forwards';
             const t6 = setTimeout(() => {
