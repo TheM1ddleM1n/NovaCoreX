@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         NovaCoreX V3!
+// @name         NovaCoreX V3 Fixed!
 // @namespace    M1ddleM1n and Scripter on top!
-// @version      3.5
+// @version      3.6
 // @description  NovaCoreX V3 Ultra-Optimized - Zero lag, high performance, minimal memory footprint
 // @author       Scripter, TheM1ddleM1n
 // @icon         https://raw.githubusercontent.com/TheM1ddleM1n/NovaCoreX/refs/heads/main/NovaCoreX.png
@@ -24,7 +24,7 @@
     const DEFAULT_MENU_KEY = '\\';
     const CUSTOM_COLOR_KEY = 'novacore_custom_color';
     const SESSION_COUNT_KEY = 'novacore_session_count';
-    const SCRIPT_VERSION = '3.5';
+    const SCRIPT_VERSION = '3.6';
     const GITHUB_REPO = 'TheM1ddleM1n/NovaCoreX';
     const DEFAULT_COLOR = '#00ffff';
 
@@ -50,7 +50,9 @@
             startTime: null, clicksBySecond: [], fpsHistory: [], averageFPS: 0,
             averageCPS: 0, totalSessionTime: 0
         },
-        customColor: DEFAULT_COLOR
+        customColor: DEFAULT_COLOR,
+        pendingTimeouts: new Set(),
+        pendingIntervals: new Set()
     };
 
     const cachedElements = {};
@@ -85,6 +87,24 @@
         };
     }
 
+    function trackTimeout(id) {
+        stateData.pendingTimeouts.add(id);
+        return id;
+    }
+
+    function untrackTimeout(id) {
+        stateData.pendingTimeouts.delete(id);
+    }
+
+    function trackInterval(id) {
+        stateData.pendingIntervals.add(id);
+        return id;
+    }
+
+    function untrackInterval(id) {
+        stateData.pendingIntervals.delete(id);
+    }
+
     function saveSettings() {
         safeExecute(() => {
             const settings = {
@@ -115,6 +135,7 @@
     });
 
     function addManagedListener(element, event, handler, id) {
+        if (!element) return;
         element.addEventListener(event, handler, { passive: true });
         if (!state.eventListeners.has(id)) state.eventListeners.set(id, []);
         state.eventListeners.get(id).push({ element, event, handler });
@@ -123,7 +144,9 @@
     function removeAllListeners(id) {
         const listeners = state.eventListeners.get(id);
         if (listeners) {
-            listeners.forEach(({ element, event, handler }) => element.removeEventListener(event, handler));
+            listeners.forEach(({ element, event, handler }) => {
+                if (element) element.removeEventListener(event, handler);
+            });
             state.eventListeners.delete(id);
         }
     }
@@ -153,12 +176,15 @@
                 state.sessionStats.startTime = Date.now();
                 localStorage.setItem(SESSION_COUNT_KEY, sessionCount.toString());
             } catch (e) {}
-            state.intervals.statsUpdate = setInterval(updateStatsHistory, TIMING.STATS_UPDATE_INTERVAL);
+            const intervalId = setInterval(updateStatsHistory, TIMING.STATS_UPDATE_INTERVAL);
+            state.intervals.statsUpdate = intervalId;
+            trackInterval(intervalId);
         });
     }
 
     function updateStatsHistory() {
         safeExecute(() => {
+            if (!state.sessionStats.startTime) return;
             const now = Date.now();
             const sessionTime = Math.floor((now - state.sessionStats.startTime) / 1000);
             if (sessionTime > state.sessionStats.clicksBySecond.length) {
@@ -295,14 +321,28 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         clientNameContainer.innerHTML += '<span class="client-name-checkmark">✔️</span>';
         overlay.appendChild(clientNameContainer);
         document.body.appendChild(overlay);
-        setTimeout(() => document.querySelector('.checkmark').style.animation = 'checkPopIn 0.6s forwards ease', TIMING.INTRO_CHECK_APPEAR);
-        setTimeout(() => button.style.animation = 'slideUpOutTop 0.8s ease forwards', TIMING.INTRO_BUTTON_EXIT);
-        setTimeout(() => {
+        const t1 = setTimeout(() => {
+            const checkEl = document.querySelector('.checkmark');
+            if (checkEl) checkEl.style.animation = 'checkPopIn 0.6s forwards ease';
+        }, TIMING.INTRO_CHECK_APPEAR);
+        trackTimeout(t1);
+
+        const t2 = setTimeout(() => button.style.animation = 'slideUpOutTop 0.8s ease forwards', TIMING.INTRO_BUTTON_EXIT);
+        trackTimeout(t2);
+
+        const t3 = setTimeout(() => {
             text.style.animation = 'strokeDashoffsetAnim 2.5s forwards ease';
             clientNameContainer.style.opacity = '1';
             clientNameContainer.style.animation = 'fadeScaleIn 0.8s ease forwards';
         }, TIMING.INTRO_TEXT_START);
-        setTimeout(() => document.querySelector('.client-name-checkmark').style.animation = 'checkmarkFadeScale 0.5s forwards ease', TIMING.INTRO_CHECKMARK_APPEAR);
+        trackTimeout(t3);
+
+        const t4 = setTimeout(() => {
+            const checkmarkEl = document.querySelector('.client-name-checkmark');
+            if (checkmarkEl) checkmarkEl.style.animation = 'checkmarkFadeScale 0.5s forwards ease';
+        }, TIMING.INTRO_CHECKMARK_APPEAR);
+        trackTimeout(t4);
+
         return overlay;
     }
 
@@ -341,7 +381,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             }
         };
         const onMouseMove = throttle((e) => {
-            if (dragState.active) {
+            if (dragState.active && element.parentElement) {
                 const newX = Math.max(10, Math.min(window.innerWidth - element.offsetWidth - 10, e.clientX - dragState.offsetX));
                 const newY = Math.max(10, Math.min(window.innerHeight - element.offsetHeight - 10, e.clientY - dragState.offsetY));
                 element.style.left = `${newX}px`;
@@ -408,17 +448,19 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function startCPSCounter() {
         if (!state.counters.cps) createCPSCounter();
         state.cpsClicks = [];
-        state.intervals.cps = setInterval(() => {
+        const intervalId = setInterval(() => {
             const cutoff = performance.now() - TIMING.CPS_WINDOW;
             while (state.cpsClicks.length > 0 && state.cpsClicks[0] < cutoff) state.cpsClicks.shift();
             updateCPSCounter();
         }, TIMING.CPS_UPDATE_INTERVAL);
+        state.intervals.cps = intervalId;
+        trackInterval(intervalId);
     }
 
     function stopCPSCounter() {
         if (state.cleanupFunctions.cps) { state.cleanupFunctions.cps(); state.cleanupFunctions.cps = null; }
         if (state.counters.cps) { state.counters.cps.remove(); state.counters.cps = null; }
-        if (state.intervals.cps) { clearInterval(state.intervals.cps); state.intervals.cps = null; }
+        if (state.intervals.cps) { clearInterval(state.intervals.cps); untrackInterval(state.intervals.cps); state.intervals.cps = null; }
         state.cpsClicks = [];
     }
 
@@ -445,12 +487,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function startRealTimeCounter() {
         if (!state.counters.realTime) createRealTimeCounter();
         updateRealTime();
-        state.intervals.realTime = setInterval(updateRealTime, 1000);
+        const intervalId = setInterval(updateRealTime, 1000);
+        state.intervals.realTime = intervalId;
+        trackInterval(intervalId);
     }
 
     function stopRealTimeCounter() {
         if (state.counters.realTime) { state.counters.realTime.remove(); state.counters.realTime = null; }
-        if (state.intervals.realTime) { clearInterval(state.intervals.realTime); state.intervals.realTime = null; }
+        if (state.intervals.realTime) { clearInterval(state.intervals.realTime); untrackInterval(state.intervals.realTime); state.intervals.realTime = null; }
     }
 
     function createPingCounter() {
@@ -465,13 +509,16 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function measurePing() {
         return new Promise((resolve) => {
             const startTime = performance.now();
+            const timeout = setTimeout(() => resolve(0), 5000);
             fetch(window.location.origin + '/', {
                 method: 'HEAD',
                 cache: 'no-cache',
                 mode: 'no-cors'
             }).then(() => {
+                clearTimeout(timeout);
                 resolve(Math.round(performance.now() - startTime));
             }).catch(() => {
+                clearTimeout(timeout);
                 resolve(0);
             });
         });
@@ -493,13 +540,15 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     function startPingCounter() {
         if (!state.counters.ping) createPingCounter();
         updatePingCounter();
-        state.intervals.ping = setInterval(updatePingCounter, TIMING.PING_UPDATE_INTERVAL);
+        const intervalId = setInterval(updatePingCounter, TIMING.PING_UPDATE_INTERVAL);
+        state.intervals.ping = intervalId;
+        trackInterval(intervalId);
     }
 
     function stopPingCounter() {
         if (state.cleanupFunctions.ping) { state.cleanupFunctions.ping(); state.cleanupFunctions.ping = null; }
         if (state.counters.ping) { state.counters.ping.remove(); state.counters.ping = null; }
-        if (state.intervals.ping) { clearInterval(state.intervals.ping); state.intervals.ping = null; }
+        if (state.intervals.ping) { clearInterval(state.intervals.ping); untrackInterval(state.intervals.ping); state.intervals.ping = null; }
         state.pingStats.pingHistory = [];
     }
 
@@ -516,7 +565,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const down = new KeyboardEvent("keydown", { key: " ", code: "Space", keyCode: 32, which: 32, bubbles: true });
         const up = new KeyboardEvent("keyup", { key: " ", code: "Space", keyCode: 32, which: 32, bubbles: true });
         window.dispatchEvent(down);
-        setTimeout(() => window.dispatchEvent(up), 50);
+        const t = setTimeout(() => window.dispatchEvent(up), 50);
+        trackTimeout(t);
     }
 
     function updateAntiAfkCounter() {
@@ -527,7 +577,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         if (!state.counters.antiAfk) createAntiAfkCounter();
         state.antiAfkCountdown = 5;
         updateAntiAfkCounter();
-        state.intervals.antiAfk = setInterval(() => {
+        const intervalId = setInterval(() => {
             state.antiAfkCountdown--;
             updateAntiAfkCounter();
             if (state.antiAfkCountdown <= 0) {
@@ -535,12 +585,14 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 state.antiAfkCountdown = 5;
             }
         }, 1000);
+        state.intervals.antiAfk = intervalId;
+        trackInterval(intervalId);
     }
 
     function stopAntiAfk() {
         if (state.cleanupFunctions.antiAfk) { state.cleanupFunctions.antiAfk(); state.cleanupFunctions.antiAfk = null; }
         if (state.counters.antiAfk) { state.counters.antiAfk.remove(); state.counters.antiAfk = null; }
-        if (state.intervals.antiAfk) { clearInterval(state.intervals.antiAfk); state.intervals.antiAfk = null; }
+        if (state.intervals.antiAfk) { clearInterval(state.intervals.antiAfk); untrackInterval(state.intervals.antiAfk); state.intervals.antiAfk = null; }
     }
 
     function createMenu() {
@@ -552,14 +604,12 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         menuOverlay.appendChild(menuHeader);
         const menuContent = document.createElement('div');
         menuContent.id = 'nova-menu-content';
-        const focusableElements = [];
 
         const createButton = (text, onClick) => {
             const btn = document.createElement('button');
             btn.className = 'nova-menu-btn';
             btn.textContent = text;
             btn.addEventListener('click', onClick);
-            focusableElements.push(btn);
             return btn;
         };
 
@@ -568,37 +618,42 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             else { state.fpsShown = true; startFPSCounter(); fpsBtn.textContent = 'Hide FPS Counter'; }
         });
         menuContent.appendChild(fpsBtn);
+        cachedElements.fpsBtn = fpsBtn;
 
         const cpsBtn = createButton('CPS Counter', () => {
             if (state.cpsShown) { stopCPSCounter(); cpsBtn.textContent = 'CPS Counter'; state.cpsShown = false; }
             else { startCPSCounter(); cpsBtn.textContent = 'Hide CPS Counter'; state.cpsShown = true; }
         });
         menuContent.appendChild(cpsBtn);
+        cachedElements.cpsBtn = cpsBtn;
 
         const realTimeBtn = createButton('Real Time', () => {
             if (state.realTimeShown) { stopRealTimeCounter(); realTimeBtn.textContent = 'Real Time'; state.realTimeShown = false; }
             else { startRealTimeCounter(); realTimeBtn.textContent = 'Hide Real Time'; state.realTimeShown = true; }
         });
         menuContent.appendChild(realTimeBtn);
+        cachedElements.realTimeBtn = realTimeBtn;
 
         const pingBtn = createButton('Ping Counter', () => {
             if (state.pingShown) { stopPingCounter(); pingBtn.textContent = 'Ping Counter'; state.pingShown = false; }
             else { startPingCounter(); pingBtn.textContent = 'Hide Ping Counter'; state.pingShown = true; }
         });
         menuContent.appendChild(pingBtn);
+        cachedElements.pingBtn = pingBtn;
 
         const antiAfkBtn = createButton('Anti-AFK', () => {
             if (state.antiAfkEnabled) { stopAntiAfk(); antiAfkBtn.textContent = 'Anti-AFK'; state.antiAfkEnabled = false; }
             else { startAntiAfk(); antiAfkBtn.textContent = 'Disable Anti-AFK'; state.antiAfkEnabled = true; }
         });
         menuContent.appendChild(antiAfkBtn);
+        cachedElements.antiAfkBtn = antiAfkBtn;
 
         const fullscreenBtn = createButton('Auto Fullscreen', () => {
             const elem = document.documentElement;
             if (!document.fullscreenElement) {
                 elem.requestFullscreen().catch(err => { alert(`Error: ${err.message}`); });
             } else {
-                document.exitFullscreen();
+                document.exitFullscreen().catch(() => {});
             }
         });
         menuContent.appendChild(fullscreenBtn);
@@ -619,7 +674,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             document.documentElement.style.setProperty('--nova-primary', color);
             document.documentElement.style.setProperty('--nova-shadow', color);
         });
-        focusableElements.push(colorInput);
         colorSection.appendChild(colorInput);
         menuContent.appendChild(colorSection);
 
@@ -643,7 +697,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
             if (cachedElements.hint) cachedElements.hint.textContent = `Press ${state.menuKey} To Open Menu!`;
             keybindInput.blur();
         });
-        focusableElements.push(keybindInput);
         settingsSection.appendChild(keybindInput);
         menuContent.appendChild(settingsSection);
 
@@ -681,13 +734,6 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         document.body.appendChild(menuOverlay);
         menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) closeMenu(); });
         cachedElements.menu = menuOverlay;
-        cachedElements.fpsBtn = fpsBtn;
-        cachedElements.cpsBtn = cpsBtn;
-        cachedElements.realTimeBtn = realTimeBtn;
-        cachedElements.pingBtn = pingBtn;
-        cachedElements.antiAfkBtn = antiAfkBtn;
-        cachedElements.fullscreenBtn = fullscreenBtn;
-        cachedElements.focusableElements = focusableElements;
         return menuOverlay;
     }
 
@@ -714,7 +760,7 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
     }
 
     function setupKeyboardHandler() {
-        window.addEventListener('keydown', (e) => {
+        const handleKeyDown = (e) => {
             if (e.key === state.menuKey) {
                 e.preventDefault();
                 toggleMenu();
@@ -722,7 +768,8 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
                 e.preventDefault();
                 closeMenu();
             }
-        });
+        };
+        addManagedListener(window, 'keydown', handleKeyDown, 'menu_handler');
     }
 
     function restoreSavedState() {
@@ -774,9 +821,38 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         stopRealTimeCounter();
         stopPingCounter();
         stopAntiAfk();
-        Object.values(state.intervals).forEach(interval => { if (interval) clearInterval(interval); });
-        if (state.rafId) cancelAnimationFrame(state.rafId);
+        
+        // Clear all intervals
+        Object.entries(state.intervals).forEach(([key, interval]) => { 
+            if (interval) { 
+                clearInterval(interval); 
+                untrackInterval(interval);
+                state.intervals[key] = null;
+            } 
+        });
+        
+        // Clear all timeouts
+        state.pendingTimeouts.forEach(timeout => clearTimeout(timeout));
+        state.pendingTimeouts.clear();
+        
+        // Clear RAF
+        if (state.rafId) {
+            cancelAnimationFrame(state.rafId);
+            state.rafId = null;
+        }
+        
+        // Remove all listeners
+        state.eventListeners.forEach((_, id) => removeAllListeners(id));
+        state.eventListeners.clear();
+        
+        // Remove DOM elements
+        Object.values(cachedElements).forEach(el => {
+            if (el && el.parentElement) el.remove();
+        });
+        cachedElements = {};
+        
         stopPerformanceLoop();
+        console.log('[NovaCoreX] Cleanup complete!');
     }
 
     window.addEventListener('beforeunload', globalCleanup);
@@ -790,17 +866,20 @@ svg text { font-family: Segoe UI, sans-serif; font-weight: 700; font-size: 72px;
         const hint = createHintText();
         const menu = createMenu();
         setupKeyboardHandler();
-        setTimeout(() => {
+        const t = setTimeout(() => {
             intro.style.animation = 'fadeOut 1s ease forwards';
-            setTimeout(() => {
+            const t2 = setTimeout(() => {
                 intro.remove();
                 header.classList.add('visible');
                 hint.style.opacity = '1';
-                setTimeout(() => { hint.style.opacity = '0'; }, TIMING.HINT_TEXT_DURATION);
+                const t3 = setTimeout(() => { hint.style.opacity = '0'; }, TIMING.HINT_TEXT_DURATION);
+                trackTimeout(t3);
                 restoreSavedState();
                 console.log('[NovaCoreX] Initialization completed!');
             }, TIMING.INTRO_FADE_OUT);
+            trackTimeout(t2);
         }, TIMING.INTRO_TOTAL_DURATION);
+        trackTimeout(t);
     }
 
     if (document.readyState === 'loading') {
